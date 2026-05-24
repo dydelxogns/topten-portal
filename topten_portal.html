@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>탑텐 영업지원 포털</title>
+<style>
+:root {
+  --primary:#1a1a2e; --accent:#e94560; --accent2:#0f3460;
+  --bg:#f5f6fa; --card:#fff; --border:#e0e0e0;
+  --text:#2d2d2d; --muted:#888;
+  --success:#27ae60; --warning:#f39c12; --danger:#e74c3c; --info:#2980b9;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI','Apple SD Gothic Neo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+header{background:var(--primary);color:#fff;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3);}
+.logo{font-size:18px;font-weight:700;letter-spacing:1px;} .logo span{color:var(--accent);}
+nav{background:var(--accent2);display:flex;overflow-x:auto;position:sticky;top:56px;z-index:99;}
+nav button{background:none;border:none;color:rgba(255,255,255,.7);padding:13px 22px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap;border-bottom:3px solid transparent;font-family:inherit;}
+nav button:hover{color:#fff;background:rgba(255,255,255,.08);}
+nav button.active{color:#fff;border-bottom-color:var(--accent);background:rgba(255,255,255,.12);}
+.page{display:none;padding:20px;max-width:1300px;margin:0 auto;} .page.active{display:block;}
+
+/* 카드 */
+.card{background:var(--card);border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.08);border:1px solid var(--border);}
+
+/* 검색 */
+.search-bar{display:flex;gap:10px;align-items:center;background:var(--card);padding:14px 18px;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.08);border:1px solid var(--border);margin-bottom:14px;flex-wrap:wrap;}
+.search-bar input,.search-bar select{border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;outline:none;transition:border-color .2s;font-family:inherit;}
+.search-bar input{flex:1;min-width:180px;} .search-bar input:focus,.search-bar select:focus{border-color:var(--accent);}
+.stats-row{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+.stat-badge{background:var(--card);border-radius:10px;padding:12px 16px;border:1px solid var(--border);text-align:center;flex:1;min-width:110px;}
+.stat-badge .val{font-size:22px;font-weight:700;color:var(--accent2);} .stat-badge .lbl{font-size:11px;color:var(--muted);margin-top:2px;}
+.store-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;}
+.store-card{background:var(--card);border-radius:12px;padding:16px;border:1px solid var(--border);cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.store-card:hover{transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,.12);border-color:var(--accent);}
+.sc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.sc-name{font-size:15px;font-weight:700;} .sc-rank{background:var(--primary);color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;font-weight:600;}
+.sc-meta{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;}
+.tag{border-radius:5px;padding:3px 8px;font-size:11px;font-weight:500;}
+.tag.cat{background:#f0f2ff;color:var(--accent2);} .tag.region{background:#fff0f3;color:var(--accent);} .tag.mgr{background:#f0fff4;color:var(--success);}
+.sc-kpi{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;border-top:1px solid var(--border);padding-top:8px;}
+.kpi-item{text-align:center;} .kpi-item .k-val{font-size:14px;font-weight:700;} .kpi-item .k-lbl{font-size:10px;color:var(--muted);}
+.positive{color:var(--success);} .negative{color:var(--danger);} .neutral{color:var(--info);}
+.result-count{font-size:12px;color:var(--muted);margin-bottom:10px;}
+
+/* 모달 */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal{background:#fff;border-radius:16px;padding:24px;max-width:620px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+.modal h2{font-size:20px;margin-bottom:18px;display:flex;align-items:center;gap:8px;}
+.modal-close{margin-left:auto;background:#f0f0f0;border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.info-item .i-lbl{font-size:11px;color:var(--muted);margin-bottom:3px;} .info-item .i-val{font-size:14px;font-weight:600;}
+.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;}
+.kpi-big{background:var(--bg);border-radius:10px;padding:12px;text-align:center;}
+.kpi-big .kb-val{font-size:20px;font-weight:800;} .kpi-big .kb-lbl{font-size:11px;color:var(--muted);margin-top:3px;}
+.sec-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;margin:16px 0 10px;border-bottom:1px solid var(--border);padding-bottom:5px;}
+
+/* ===== 신청 공통 ===== */
+.req-wrap{max-width:780px;margin:0 auto;}
+.step-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+.step-back{background:none;border:1.5px solid var(--border);border-radius:8px;padding:7px 14px;font-size:13px;cursor:pointer;font-family:inherit;transition:all .2s;}
+.step-back:hover{border-color:var(--accent2);color:var(--accent2);}
+.step-title{font-size:20px;font-weight:700;}
+
+/* 업무선택 카드 그리드 */
+.task-select-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:8px;}
+.task-select-card{background:var(--card);border:2px solid var(--border);border-radius:12px;padding:18px 16px;cursor:pointer;transition:all .2s;font-family:inherit;text-align:left;}
+.task-select-card:hover{border-color:var(--accent2);background:#f0f2ff;transform:translateY(-1px);}
+.task-select-card .tc-num{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;}
+.task-select-card .tc-icon{font-size:24px;margin-bottom:6px;}
+.task-select-card .tc-name{font-size:14px;font-weight:700;line-height:1.4;}
+.task-select-card .tc-timing{font-size:11px;color:var(--accent);margin-top:4px;font-weight:600;}
+.task-select-card .tc-req{font-size:11px;color:var(--muted);margin-top:3px;}
+
+/* 폼 */
+.form-section{margin-bottom:0;}
+.form-box{background:var(--card);border-radius:12px;padding:22px;border:1px solid var(--border);box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:14px;}
+.form-box-title{font-size:14px;font-weight:700;color:var(--accent2);margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+.fg{margin-bottom:16px;}
+.fg label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;}
+.fg label .req{color:var(--accent);}
+.fg label .hint{font-size:11px;color:var(--muted);font-weight:400;margin-left:4px;}
+.fg input,.fg select,.fg textarea{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;font-family:inherit;transition:border-color .2s;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--accent2);}
+.fg textarea{min-height:80px;resize:vertical;}
+.fg-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.radio-group{display:flex;gap:10px;flex-wrap:wrap;}
+.radio-btn{border:2px solid var(--border);border-radius:8px;padding:8px 18px;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s;background:#fff;font-family:inherit;}
+.radio-btn:hover{border-color:var(--accent2);}
+.radio-btn.sel{border-color:var(--accent);background:#fff0f3;color:var(--accent);}
+.file-zone{border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;transition:border-color .2s;position:relative;}
+.file-zone:hover{border-color:var(--accent2);}
+.file-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+.file-zone .fz-icon{font-size:24px;margin-bottom:4px;}
+.file-zone .fz-text{font-size:12px;color:var(--muted);}
+.file-zone .fz-req{font-size:11px;color:var(--accent);margin-top:3px;font-weight:600;}
+.file-names{margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;}
+.file-chip{background:#f0f2ff;color:var(--accent2);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;}
+.link-input-wrap{display:flex;gap:8px;align-items:center;}
+.link-input-wrap input{flex:1;}
+.link-badge{background:#e8f4fd;color:var(--info);border-radius:6px;padding:4px 10px;font-size:11px;white-space:nowrap;}
+
+.btn-submit{width:100%;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;transition:background .2s;font-family:inherit;margin-top:4px;}
+.btn-submit:hover{background:#c0392b;}
+.cond-block{background:#fff8f0;border:1px solid #fde8cc;border-radius:8px;padding:12px;margin-top:8px;}
+.cond-block .cb-title{font-size:12px;font-weight:700;color:var(--warning);margin-bottom:8px;}
+
+/* 대시보드 */
+.dash-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+.dash-filters{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.filter-btn{border:1.5px solid var(--border);border-radius:20px;padding:5px 14px;font-size:12px;cursor:pointer;background:#fff;transition:all .2s;font-family:inherit;}
+.filter-btn:hover,.filter-btn.active{background:var(--accent2);color:#fff;border-color:var(--accent2);}
+.task-list{display:flex;flex-direction:column;gap:10px;}
+.task-item{background:#fff;border-radius:12px;padding:14px 18px;border:1px solid var(--border);display:flex;align-items:flex-start;gap:14px;box-shadow:0 1px 3px rgba(0,0,0,.05);}
+.ti-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+.dot-open{background:var(--success);} .dot-close{background:var(--danger);} .dot-system{background:var(--info);} .dot-admin{background:var(--warning);}
+.ti-left{flex:1;}
+.ti-store{font-size:15px;font-weight:700;}
+.ti-type{font-size:12px;color:var(--muted);margin-top:3px;}
+.ti-detail{font-size:12px;margin-top:6px;color:#555;background:var(--bg);padding:5px 9px;border-radius:6px;line-height:1.5;}
+.ti-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;}
+.status-sel{border:1.5px solid var(--border);border-radius:8px;padding:4px 8px;font-size:11px;cursor:pointer;font-family:inherit;}
+.sbadge{border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;}
+.sbadge.pending{background:#fff3cd;color:#856404;} .sbadge.progress{background:#d1e7ff;color:#0a58ca;} .sbadge.done{background:#d1f0d1;color:#155724;}
+.empty-state{text-align:center;padding:50px 20px;color:var(--muted);}
+.empty-state .es-icon{font-size:44px;margin-bottom:10px;} .empty-state p{font-size:14px;}
+
+/* 토스트 */
+.toast{position:fixed;bottom:28px;right:28px;background:var(--primary);color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;transform:translateY(80px);opacity:0;transition:all .3s;box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.toast.show{transform:translateY(0);opacity:1;}
+
+.section-badge{display:inline-flex;align-items:center;gap:6px;background:#f0f2ff;color:var(--accent2);border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;margin-bottom:14px;}
+
+@media(max-width:600px){.fg-row{grid-template-columns:1fr;}.kpi-grid{grid-template-columns:repeat(2,1fr);}.info-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">TOP<span>10</span> 영업지원 포털</div>
+  <div style="font-size:12px;opacity:.7;">신성통상 탑텐</div>
+</header>
+
+<nav>
+  <button class="active" onclick="showPage('stores',this)">🏪 매장 검색</button>
+  <button onclick="showPage('open',this)">🏗️ 신규 오픈 신청</button>
+  <button onclick="showPage('close',this)">🔒 폐점·이전 신청</button>
+  <button onclick="showPage('admin',this)">💻 전산·행정 신청</button>
+  <button onclick="showPage('dashboard',this)">📊 할 일 대시보드</button>
+</nav>
+
+<!-- ============================
+     매장 검색
+============================= -->
+<div id="page-stores" class="page active">
+  <div class="search-bar">
+    <input type="text" id="search-input" placeholder="🔍 매장명 검색..." oninput="filterStores()">
+    <select id="filter-region" onchange="filterStores()">
+      <option value="">전체 지역</option>
+      <option>서울</option><option>경기</option><option>인천</option>
+      <option>부산</option><option>대구</option><option>대전</option>
+      <option>광주</option><option>울산</option><option>강원</option>
+      <option>경남</option><option>경북</option><option>전남</option>
+      <option>전북</option><option>충남</option><option>충북</option><option>제주</option>
+    </select>
+    <select id="filter-category" onchange="filterStores()">
+      <option value="">전체 유형</option>
+      <option>가두 직영점</option><option>가두 대리점</option>
+      <option>백화점</option><option>백화점아울렛</option>
+      <option>쇼핑몰</option><option>할인마트</option>
+    </select>
+    <select id="filter-manager" onchange="filterStores()">
+      <option value="">전체 담당자</option>
+    </select>
+  </div>
+  <div class="stats-row">
+    <div class="stat-badge"><div class="val" id="st-total">-</div><div class="lbl">전체 매장</div></div>
+    <div class="stat-badge"><div class="val" id="st-filtered">-</div><div class="lbl">검색 결과</div></div>
+    <div class="stat-badge"><div class="val" id="st-soon">-</div><div class="lbl">계약 만료 임박</div></div>
+  </div>
+  <div class="result-count" id="result-count"></div>
+  <div class="store-grid" id="store-grid"></div>
+</div>
+
+<!-- ============================
+     신규 오픈 신청
+============================= -->
+<div id="page-open" class="page">
+  <div class="req-wrap">
+
+    <!-- STEP 1: 업무 선택 -->
+    <div id="open-step1">
+      <div class="section-badge">🏗️ 신규 오픈</div>
+      <div style="font-size:20px;font-weight:700;margin-bottom:6px;">어떤 업무를 신청하시겠어요?</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:18px;">타임테이블 기준 — 해당 업무를 선택하면 맞춤 신청서가 열립니다</div>
+      <div class="task-select-grid">
+        <button class="task-select-card" onclick="openForm('open','code')">
+          <div class="tc-num">01</div><div class="tc-icon">🔢</div>
+          <div class="tc-name">종사업장 코드 발행</div>
+          <div class="tc-timing">⏱ 4주전</div>
+          <div class="tc-req">계약서·기안 링크 필수</div>
+        </button>
+        <button class="task-select-card" onclick="openForm('open','ppt')">
+          <div class="tc-num">02</div><div class="tc-icon">📊</div>
+          <div class="tc-name">오픈 보고 한판 PPT 제작</div>
+          <div class="tc-timing">⏱ 1달전</div>
+          <div class="tc-req">계약서·BEP·기안 링크 필수</div>
+        </button>
+        <button class="task-select-card" onclick="openForm('open','mail')">
+          <div class="tc-num">03</div><div class="tc-icon">📧</div>
+          <div class="tc-name">유관부서 메일 발송</div>
+          <div class="tc-timing">⏱ 4주전</div>
+          <div class="tc-req">인테리어·마케팅·HR 등</div>
+        </button>
+        <button class="task-select-card" onclick="openForm('open','works')">
+          <div class="tc-num">04</div><div class="tc-icon">💻</div>
+          <div class="tc-name">웍스 오픈 프로세스 등록</div>
+          <div class="tc-timing">⏱ 4주전</div>
+          <div class="tc-req">전산장비 요청 및 발송 포함</div>
+        </button>
+        <button class="task-select-card" onclick="openForm('open','goods')">
+          <div class="tc-num">05</div><div class="tc-icon">📦</div>
+          <div class="tc-name">판부자재·사은품 출고 요청</div>
+          <div class="tc-timing">⏱ 4주전</div>
+          <div class="tc-req">판부자재·사은품 파일 필수</div>
+        </button>
+        <button class="task-select-card" onclick="openForm('open','cctv')">
+          <div class="tc-num">06</div><div class="tc-icon">📹</div>
+          <div class="tc-name">CCTV 설치 요청</div>
+          <div class="tc-timing">⏱ 3주전</div>
+          <div class="tc-req">SK — 견적 및 설치일자 협의</div>
+        </button>
+        <button class="task-select-card" onclick="openForm('open','angle')">
+          <div class="tc-num">07</div><div class="tc-icon">🔩</div>
+          <div class="tc-name">앵글 설치 요청</div>
+          <div class="tc-timing">⏱ 3주전</div>
+          <div class="tc-req">업체 소통·견적서 요청</div>
+        </button>
+        <button class="task-select-card" onclick="openForm('open','hanger')">
+          <div class="tc-num">08</div><div class="tc-icon">🧥</div>
+          <div class="tc-name">옷걸이 발주 요청</div>
+          <div class="tc-timing">⏱ 3주전</div>
+          <div class="tc-req">성부실업 발주</div>
+        </button>
+        <button class="task-select-card" onclick="openForm('open','banner')">
+          <div class="tc-num">09</div><div class="tc-icon">🚩</div>
+          <div class="tc-name">휘장 설치 요청</div>
+          <div class="tc-timing">⏱ 3주전</div>
+          <div class="tc-req">나이트스크린 업체 소통</div>
+        </button>
+        <button class="task-select-card" onclick="openForm('open','doc')">
+          <div class="tc-num">10</div><div class="tc-icon">📝</div>
+          <div class="tc-name">기안 작성 요청</div>
+          <div class="tc-timing">⏱ 3주전</div>
+          <div class="tc-req">앵글 설치 기안 상신</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 2: 신청서 -->
+    <div id="open-step2" style="display:none;">
+      <div class="step-header">
+        <button class="step-back" onclick="backToStep1('open')">← 뒤로</button>
+        <div class="step-title" id="open-form-title"></div>
+      </div>
+
+      <!-- 공통 필드 -->
+      <div class="form-box">
+        <div class="form-box-title">📋 공통 정보</div>
+        <div class="fg-row">
+          <div class="fg">
+            <label>매장 유형 <span class="req">*</span></label>
+            <div class="radio-group">
+              <button class="radio-btn" onclick="selectRadio(this,'open-store-type','가두직영')">가두직영</button>
+              <button class="radio-btn" onclick="selectRadio(this,'open-store-type','유통사')">유통사</button>
+            </div>
+            <input type="hidden" id="open-store-type">
+          </div>
+          <div class="fg">
+            <label>담당자 이름 <span class="req">*</span></label>
+            <input type="text" id="open-manager" placeholder="본인 이름">
+          </div>
+        </div>
+        <div class="fg-row">
+          <div class="fg">
+            <label>매장명 <span class="req">*</span></label>
+            <input type="text" id="open-store" placeholder="매장명" list="open-store-dl">
+            <datalist id="open-store-dl"></datalist>
+          </div>
+          <div class="fg">
+            <label>신청 날짜 <span class="req">*</span></label>
+            <input type="date" id="open-req-date">
+          </div>
+        </div>
+        <div class="fg-row">
+          <div class="fg">
+            <label>요청 기한 <span class="req">*</span></label>
+            <input type="date" id="open-deadline">
+          </div>
+          <div class="fg">
+            <label>오픈 예정일</label>
+            <input type="date" id="open-target-date">
+          </div>
+        </div>
+        <div class="fg">
+          <label>요청 내용 <span class="req">*</span></label>
+          <textarea id="open-content" placeholder="요청 내용을 상세히 입력해주세요"></textarea>
+        </div>
+      </div>
+
+      <!-- 업무별 특수 필드 -->
+      <div id="open-specific-fields"></div>
+
+      <!-- 공통 첨부 -->
+      <div class="form-box">
+        <div class="form-box-title">📎 첨부파일</div>
+        <div class="fg">
+          <label>추가 첨부파일 <span class="hint">(선택)</span></label>
+          <div class="file-zone" id="open-extra-zone">
+            <input type="file" multiple onchange="showFiles(this,'open-extra-names')">
+            <div class="fz-icon">📂</div>
+            <div class="fz-text">클릭하여 파일 선택 (여러 파일 가능)</div>
+          </div>
+          <div class="file-names" id="open-extra-names"></div>
+        </div>
+      </div>
+
+      <button class="btn-submit" onclick="submitReq('open')">✅ 신청 제출하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================
+     폐점·이전 신청
+============================= -->
+<div id="page-close" class="page">
+  <div class="req-wrap">
+
+    <!-- STEP 1 -->
+    <div id="close-step1">
+      <div class="section-badge">🔒 폐점·이전</div>
+      <div style="font-size:20px;font-weight:700;margin-bottom:6px;">어떤 업무를 신청하시겠어요?</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:18px;">폐점 타임테이블 기준으로 선택해 주세요</div>
+      <div class="task-select-grid">
+        <button class="task-select-card" onclick="openForm('close','logistics')">
+          <div class="tc-num">01</div><div class="tc-icon">🚚</div>
+          <div class="tc-name">물류 / RT 중지 신청</div>
+          <div class="tc-timing">⏱ 폐점 확정 즉시</div>
+          <div class="tc-req">출고 중지 요청</div>
+        </button>
+        <button class="task-select-card" onclick="openForm('close','pop')">
+          <div class="tc-num">02</div><div class="tc-icon">🪧</div>
+          <div class="tc-name">폐점 POP 요청</div>
+          <div class="tc-timing">⏱ 1달전</div>
+          <div class="tc-req">마케팅팀 POP 제작 요청</div>
+        </button>
+        <button class="task-select-card" onclick="openForm('close','asset')">
+          <div class="tc-num">03</div><div class="tc-icon">📋</div>
+          <div class="tc-name">잔존가액 파일 확인</div>
+          <div class="tc-timing">⏱ 1달전</div>
+          <div class="tc-req">이용섭 대리 소통</div>
+        </button>
+        <button class="task-select-card" onclick="openForm('close','assetproc')">
+          <div class="tc-num">04</div><div class="tc-icon">🏗️</div>
+          <div class="tc-name">잔존가액 처리 방법 확인</div>
+          <div class="tc-timing">⏱ 1달전</div>
+          <div class="tc-req">인테리어팀·VMD팀 소통</div>
+        </button>
+        <button class="task-select-card" onclick="openForm('close','ppt')">
+          <div class="tc-num">05</div><div class="tc-icon">📊</div>
+          <div class="tc-name">보고용 PPT 제작</div>
+          <div class="tc-timing">⏱ 1달전</div>
+          <div class="tc-req">폐점 보고 1장 PPT</div>
+        </button>
+        <button class="task-select-card" onclick="openForm('close','cctv')">
+          <div class="tc-num">06</div><div class="tc-icon">📹</div>
+          <div class="tc-name">CCTV 철수 요청</div>
+          <div class="tc-timing">⏱ 3주전</div>
+          <div class="tc-req">작업 일정 확정 후 진행</div>
+        </button>
+        <button class="task-select-card" onclick="openForm('close','doc')">
+          <div class="tc-num">07</div><div class="tc-icon">📝</div>
+          <div class="tc-name">기안 작성 / 유관부서 소통</div>
+          <div class="tc-timing">⏱ 3주전</div>
+          <div class="tc-req">폐점 관련 기안 상신</div>
+        </button>
+        <button class="task-select-card" onclick="openForm('close','ecs')">
+          <div class="tc-num">08</div><div class="tc-icon">📄</div>
+          <div class="tc-name">ECS 공문 등록</div>
+          <div class="tc-timing">⏱ 2주전</div>
+          <div class="tc-req">ECS 시스템 공문 등록</div>
+        </button>
+        <button class="task-select-card" onclick="openForm('close','comm')">
+          <div class="tc-num">09</div><div class="tc-icon">💬</div>
+          <div class="tc-name">1달전 점장 소통</div>
+          <div class="tc-timing">⏱ 1달전</div>
+          <div class="tc-req">일자/과정/TO-DO 리스트 공유</div>
+        </button>
+        <button class="task-select-card" onclick="openForm('close','rounding')">
+          <div class="tc-num">10</div><div class="tc-icon">🚶</div>
+          <div class="tc-name">라운딩</div>
+          <div class="tc-timing">⏱ 폐점 전·후</div>
+          <div class="tc-req">1달전 + 폐점 당일 라운딩</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div id="close-step2" style="display:none;">
+      <div class="step-header">
+        <button class="step-back" onclick="backToStep1('close')">← 뒤로</button>
+        <div class="step-title" id="close-form-title"></div>
+      </div>
+
+      <div class="form-box">
+        <div class="form-box-title">📋 공통 정보</div>
+        <div class="fg-row">
+          <div class="fg">
+            <label>매장 유형 <span class="req">*</span></label>
+            <div class="radio-group">
+              <button class="radio-btn" onclick="selectRadio(this,'close-store-type','가두직영')">가두직영</button>
+              <button class="radio-btn" onclick="selectRadio(this,'close-store-type','유통사')">유통사</button>
+            </div>
+            <input type="hidden" id="close-store-type">
+          </div>
+          <div class="fg">
+            <label>담당자 이름 <span class="req">*</span></label>
+            <input type="text" id="close-manager" placeholder="본인 이름">
+          </div>
+        </div>
+        <div class="fg-row">
+          <div class="fg">
+            <label>매장명 <span class="req">*</span></label>
+            <input type="text" id="close-store" placeholder="매장명" list="close-store-dl">
+            <datalist id="close-store-dl"></datalist>
+          </div>
+          <div class="fg">
+            <label>신청 날짜 <span class="req">*</span></label>
+            <input type="date" id="close-req-date">
+          </div>
+        </div>
+        <div class="fg-row">
+          <div class="fg">
+            <label>요청 기한 <span class="req">*</span></label>
+            <input type="date" id="close-deadline">
+          </div>
+          <div class="fg">
+            <label>폐점 예정일</label>
+            <input type="date" id="close-target-date">
+          </div>
+        </div>
+        <div class="fg">
+          <label>요청 내용 <span class="req">*</span></label>
+          <textarea id="close-content" placeholder="요청 내용을 상세히 입력해주세요"></textarea>
+        </div>
+      </div>
+
+      <div id="close-specific-fields"></div>
+
+      <div class="form-box">
+        <div class="form-box-title">📎 첨부파일</div>
+        <div class="fg">
+          <label>추가 첨부파일 <span class="hint">(선택)</span></label>
+          <div class="file-zone">
+            <input type="file" multiple onchange="showFiles(this,'close-extra-names')">
+            <div class="fz-icon">📂</div>
+            <div class="fz-text">클릭하여 파일 선택</div>
+          </div>
+          <div class="file-names" id="close-extra-names"></div>
+        </div>
+      </div>
+
+      <button class="btn-submit" onclick="submitReq('close')">✅ 신청 제출하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================
+     전산·행정 신청
+============================= -->
+<div id="page-admin" class="page">
+  <div class="req-wrap">
+    <div class="section-badge">💻 전산·행정</div>
+    <div style="font-size:20px;font-weight:700;margin-bottom:18px;">전산·행정 업무 신청</div>
+    <div class="form-box">
+      <div class="form-box-title">📋 공통 정보</div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>매장 유형 <span class="req">*</span></label>
+          <div class="radio-group">
+            <button class="radio-btn" onclick="selectRadio(this,'admin-store-type','가두직영')">가두직영</button>
+            <button class="radio-btn" onclick="selectRadio(this,'admin-store-type','유통사')">유통사</button>
+          </div>
+          <input type="hidden" id="admin-store-type">
+        </div>
+        <div class="fg">
+          <label>담당자 이름 <span class="req">*</span></label>
+          <input type="text" id="admin-manager" placeholder="본인 이름">
+        </div>
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>매장명 <span class="req">*</span></label>
+          <input type="text" id="admin-store" placeholder="매장명" list="admin-store-dl">
+          <datalist id="admin-store-dl"></datalist>
+        </div>
+        <div class="fg">
+          <label>신청 날짜 <span class="req">*</span></label>
+          <input type="date" id="admin-req-date">
+        </div>
+      </div>
+    </div>
+    <div class="form-box">
+      <div class="form-box-title">💻 업무 유형</div>
+      <div class="fg">
+        <label>업무 구분 <span class="req">*</span></label>
+        <select id="admin-sub">
+          <option value="">선택하세요</option>
+          <option>전산 시스템 신규 등록</option>
+          <option>전산 정보 수정</option>
+          <option>오류·장애 처리</option>
+          <option>권한 요청</option>
+          <option>서류 발급</option>
+          <option>보고서 요청</option>
+          <option>기안 작성</option>
+          <option>기타 행정</option>
+        </select>
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>요청 기한 <span class="req">*</span></label>
+          <input type="date" id="admin-deadline">
+        </div>
+        <div class="fg"></div>
+      </div>
+      <div class="fg">
+        <label>요청 내용 <span class="req">*</span></label>
+        <textarea id="admin-content" placeholder="구체적인 요청 내용을 입력해주세요"></textarea>
+      </div>
+    </div>
+    <div class="form-box">
+      <div class="form-box-title">📎 첨부파일</div>
+      <div class="fg">
+        <div class="file-zone">
+          <input type="file" multiple onchange="showFiles(this,'admin-file-names')">
+          <div class="fz-icon">📂</div>
+          <div class="fz-text">클릭하여 파일 선택</div>
+        </div>
+        <div class="file-names" id="admin-file-names"></div>
+      </div>
+    </div>
+    <button class="btn-submit" onclick="submitReq('admin')">✅ 신청 제출하기</button>
+  </div>
+</div>
+
+<!-- ============================
+     대시보드
+============================= -->
+<div id="page-dashboard" class="page">
+  <div class="dash-top">
+    <div style="font-size:20px;font-weight:700;">📊 제반업무 처리 현황</div>
+    <button onclick="clearDone()" style="border:1.5px solid var(--border);border-radius:8px;padding:7px 13px;font-size:12px;cursor:pointer;background:#fff;font-family:inherit;">완료 항목 정리</button>
+  </div>
+  <div class="stats-row" id="dash-stats"></div>
+  <div class="dash-filters">
+    <button class="filter-btn active" onclick="setDF('all',this)">전체</button>
+    <button class="filter-btn" onclick="setDF('pending',this)">⏳ 대기중</button>
+    <button class="filter-btn" onclick="setDF('progress',this)">🔄 처리중</button>
+    <button class="filter-btn" onclick="setDF('done',this)">✅ 완료</button>
+    <button class="filter-btn" onclick="setDF('open',this)">🏗️ 신규오픈</button>
+    <button class="filter-btn" onclick="setDF('close',this)">🔒 폐점</button>
+    <button class="filter-btn" onclick="setDF('admin',this)">💻 전산·행정</button>
+  </div>
+  <div class="task-list" id="task-list"></div>
+</div>
+
+<!-- 매장 모달 -->
+<div class="modal-overlay" id="store-modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h2><span id="modal-name"></span><button class="modal-close" onclick="closeModal()">✕</button></h2>
+    <div class="sec-title">기본 정보</div>
+    <div class="info-grid" id="modal-info"></div>
+    <div class="sec-title">매출 실적</div>
+    <div class="kpi-grid" id="modal-kpi"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORES = [{"no": 1, "id": "MBA001", "name": "대학로", "manager": "정동길", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "서울", "region_detail": "서울종로구", "floor": "복층(2층)", "type": "성인 / 인샵", "area_total": 98.4, "area_sales": 93.2, "open_date": "2012-06-15", "contract_end": "2026-04-30", "rank": 147, "monthly_avg": 0.0, "daily_sales": 38775.0, "achievement": 138.5, "growth": -36.3}, {"no": 2, "id": "MBD001", "name": "의정부", "manager": "조민욱", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기의정부시", "floor": "복층(2층)", "type": "성인 / 인샵", "area_total": 148.5, "area_sales": 133.9, "open_date": "2012-08-25", "contract_end": "2026-07-11", "rank": 237, "monthly_avg": 0.0, "daily_sales": 17600.0, "achievement": 80.0, "growth": -57.4}, {"no": 3, "id": "MBL002", "name": "롯데 창원", "manager": "이용주", "category": "백화점", "subcategory": "롯데쇼핑", "region": "경남", "region_detail": "경남창원시", "floor": "B1층", "type": "성인 / 인샵", "area_total": 98.4, "area_sales": 82.1, "open_date": "2012-12-21", "contract_end": "2026-07-31", "rank": 10, "monthly_avg": 0.0, "daily_sales": 54202.0, "achievement": 90.3, "growth": -12.8}, {"no": 4, "id": "MBG001", "name": "청주", "manager": "엄초희", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충북", "region_detail": "충북청주시", "floor": "1층", "type": "성인 / 인샵", "area_total": 127.2, "area_sales": 111.0, "open_date": "2013-01-25", "contract_end": "2029-06-09", "rank": 108, "monthly_avg": 0.0, "daily_sales": 39444.0, "achievement": 116.0, "growth": 31.9}, {"no": 5, "id": "MCE012", "name": "현대 중동", "manager": "조민욱", "category": "백화점", "subcategory": "현대", "region": "경기", "region_detail": "경기부천시", "floor": "3층", "type": "성인 / 인샵", "area_total": 81.1, "area_sales": 71.4, "open_date": "2013-01-31", "contract_end": "2026-07-31", "rank": 172, "monthly_avg": 0.0, "daily_sales": 20759.0, "achievement": 69.2, "growth": -57.7}, {"no": 6, "id": "MCA009", "name": "롯데 영등포", "manager": "엄금란", "category": "백화점", "subcategory": "롯데쇼핑", "region": "서울", "region_detail": "서울영등포구", "floor": "8층", "type": "성인 / 제외", "area_total": 101.8, "area_sales": 90.9, "open_date": "2013-02-22", "contract_end": "2026-05-31", "rank": 301, "monthly_avg": 0.0, "daily_sales": 8288.0, "achievement": 59.2, "growth": -53.2}, {"no": 7, "id": "MBA011", "name": "롯데 미아", "manager": "정동길", "category": "백화점", "subcategory": "롯데쇼핑", "region": "서울", "region_detail": "서울강북구", "floor": "B1층", "type": "성인 / 제외", "area_total": 66.1, "area_sales": 62.1, "open_date": "2013-03-29", "contract_end": "2027-01-31", "rank": 82, "monthly_avg": 0.0, "daily_sales": 55749.0, "achievement": 99.6, "growth": -32.4}, {"no": 8, "id": "MBA014", "name": "롯데 청량리", "manager": "정동길", "category": "백화점", "subcategory": "롯데쇼핑", "region": "서울", "region_detail": "서울동대문구", "floor": "B1층", "type": "성인 / 인샵", "area_total": 67.6, "area_sales": 56.9, "open_date": "2013-08-08", "contract_end": "2027-01-31", "rank": 222, "monthly_avg": 0.0, "daily_sales": 19692.0, "achievement": 65.6, "growth": -45.4}, {"no": 9, "id": "MBA016", "name": "명동2", "manager": "정동길", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "서울", "region_detail": "서울중구", "floor": "복층(4층)", "type": "성인 / 특화", "area_total": 238.3, "area_sales": 159.5, "open_date": "2013-09-13", "contract_end": "2027-07-17", "rank": 1, "monthly_avg": 0.0, "daily_sales": 273791.0, "achievement": 129.1, "growth": -25.1}, {"no": 10, "id": "MBE007", "name": "롯데 평촌", "manager": "엄금란", "category": "백화점", "subcategory": "롯데쇼핑", "region": "경기", "region_detail": "경기안양시", "floor": "B3층", "type": "성인 / 인샵", "area_total": 86.8, "area_sales": 71.7, "open_date": "2013-11-01", "contract_end": "2026-07-31", "rank": 182, "monthly_avg": 0.0, "daily_sales": 37568.0, "achievement": 134.2, "growth": -21.7}, {"no": 11, "id": "MBG002", "name": "지웰시티 청주", "manager": "엄초희", "category": "쇼핑몰", "subcategory": "기타(쇼핑몰)", "region": "충북", "region_detail": "충북청주시", "floor": "2층", "type": "성인 / 인샵", "area_total": 141, "area_sales": 121, "open_date": "2014-04-25", "contract_end": "2027-04-24", "rank": 73, "monthly_avg": 0.0, "daily_sales": 44673.0, "achievement": 97.1, "growth": -11.5}, {"no": 12, "id": "MBL005", "name": "아이스퀘어 김해", "manager": "이용주", "category": "쇼핑몰", "subcategory": "기타(쇼핑몰)", "region": "경남", "region_detail": "경남김해시", "floor": "복층(2층)", "type": "성인 / 인샵", "area_total": 298.5, "area_sales": 246.6, "open_date": "2014-05-23", "contract_end": "2031-08-23", "rank": 42, "monthly_avg": 0.0, "daily_sales": 52530.0, "achievement": 101.0, "growth": -1.3}, {"no": 13, "id": "MBM005", "name": "롯데 광복", "manager": "이용수", "category": "백화점", "subcategory": "롯데쇼핑", "region": "부산", "region_detail": "부산중구", "floor": "5층", "type": "성인 / 제외", "area_total": 106.2, "area_sales": 83.9, "open_date": "2014-08-15", "contract_end": "2026-07-31", "rank": 217, "monthly_avg": 0.0, "daily_sales": 15492.0, "achievement": 64.6, "growth": -32.8}, {"no": 14, "id": "MBD020", "name": "리치마트 양주", "manager": "조민욱", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기양주시", "floor": "1층", "type": "복합 / 인샵", "area_total": 478.5, "area_sales": 201.5, "open_date": "2014-09-27", "contract_end": "2030-12-31", "rank": 91, "monthly_avg": 0.0, "daily_sales": 44154.0, "achievement": 92.0, "growth": -52.5}, {"no": 15, "id": "MBG003", "name": "홈플) 세종", "manager": "이용주", "category": "할인마트", "subcategory": "홈플러스", "region": "충남", "region_detail": "충남세종시", "floor": "2층", "type": "복합 / 인샵", "area_total": 239.8, "area_sales": 151.1, "open_date": "2014-11-13", "contract_end": "2026-11-30", "rank": 140, "monthly_avg": 0.0, "daily_sales": 36793.0, "achievement": 92.0, "growth": -13.1}, {"no": 16, "id": "MBL007", "name": "홈플) 울산 동구", "manager": "이용수", "category": "할인마트", "subcategory": "홈플러스", "region": "울산", "region_detail": "울산동구", "floor": "1층", "type": "성인 / 인샵", "area_total": 332.2, "area_sales": 251.1, "open_date": "2015-03-06", "contract_end": "2026-11-30", "rank": 122, "monthly_avg": 0.0, "daily_sales": 61293.0, "achievement": 161.3, "growth": 17.6}, {"no": 17, "id": "MBL008", "name": "롯아) 김해", "manager": "이용주", "category": "백화점아울렛", "subcategory": "롯데아울렛", "region": "경남", "region_detail": "경남김해시", "floor": "2층", "type": "성인 / 인샵", "area_total": 118.6, "area_sales": 87.5, "open_date": "2015-03-12", "contract_end": "2026-06-30", "rank": 9, "monthly_avg": 0.0, "daily_sales": 33570.0, "achievement": 49.4, "growth": -53.4}, {"no": 18, "id": "MBL009", "name": "홈플) 울산", "manager": "이용수", "category": "할인마트", "subcategory": "홈플러스", "region": "울산", "region_detail": "울산중구", "floor": "2층", "type": "성인 / 인샵", "area_total": 267.3, "area_sales": 215.3, "open_date": "2015-04-10", "contract_end": "2026-11-30", "rank": 136, "monthly_avg": 0.0, "daily_sales": 28728.0, "achievement": 75.6, "growth": -10.2}, {"no": 19, "id": "MCE058", "name": "롯마) 안산", "manager": "엄금란", "category": "할인마트", "subcategory": "롯데마트", "region": "경기", "region_detail": "경기안산시", "floor": "3층", "type": "성인 / 인샵", "area_total": 234.8, "area_sales": 210.7, "open_date": "2015-04-23", "contract_end": "2026-12-31", "rank": 105, "monthly_avg": 0.0, "daily_sales": 35151.0, "achievement": 87.9, "growth": -8.8}, {"no": 20, "id": "MBD004", "name": "홈플) 진접", "manager": "조민욱", "category": "할인마트", "subcategory": "홈플러스", "region": "경기", "region_detail": "경기남양주시", "floor": "B1층", "type": "성인 / 인샵", "area_total": 292.3, "area_sales": 224.1, "open_date": "2015-05-29", "contract_end": "2027-02-28", "rank": 270, "monthly_avg": 0.0, "daily_sales": 10403.0, "achievement": 43.3, "growth": -67.3}, {"no": 21, "id": "MBF001", "name": "강릉", "manager": "정동길", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "강원", "region_detail": "강원강릉시", "floor": "1층", "type": "복합 / 인샵", "area_total": 189.2, "area_sales": 134.0, "open_date": "2015-07-03", "contract_end": "2029-11-30", "rank": 37, "monthly_avg": 0.0, "daily_sales": 49372.0, "achievement": 102.9, "growth": -24.5}, {"no": 22, "id": "MCI003", "name": "롯마) 대덕", "manager": "이용주", "category": "할인마트", "subcategory": "롯데마트", "region": "대전", "region_detail": "대전유성구", "floor": "1층", "type": "성인 / 인샵", "area_total": 177.1, "area_sales": 153.3, "open_date": "2015-07-30", "contract_end": "2026-12-31", "rank": 249, "monthly_avg": 0.0, "daily_sales": 27107.0, "achievement": 123.2, "growth": -30.2}, {"no": 23, "id": "MBE015", "name": "홈플) 병점", "manager": "조남오", "category": "할인마트", "subcategory": "홈플러스", "region": "경기", "region_detail": "경기화정시", "floor": "B1층", "type": "성인 / 인샵", "area_total": 194.3, "area_sales": 85.4, "open_date": "2015-10-08", "contract_end": "2026-11-30", "rank": 302, "monthly_avg": 0.0, "daily_sales": 7753.0, "achievement": 48.5, "growth": -73.4}, {"no": 24, "id": "MBJ004", "name": "동성로 중앙", "manager": "황민아", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "대구", "region_detail": "대구중구", "floor": "복층(3층)", "type": "성인 / 인샵", "area_total": 465.8, "area_sales": 393.5, "open_date": "2015-10-08", "contract_end": "2031-10-07", "rank": 167, "monthly_avg": 0.0, "daily_sales": null, "achievement": null, "growth": -100}, {"no": 25, "id": "MBC006", "name": "홈플) 인천 송도", "manager": "공석", "category": "할인마트", "subcategory": "홈플러스", "region": "인천", "region_detail": "인천연수구", "floor": "1층", "type": "성인 / 제외", "area_total": 146.7, "area_sales": 129.1, "open_date": "2015-10-15", "contract_end": "2026-08-31 ", "rank": 267, "monthly_avg": 0.0, "daily_sales": 17016.0, "achievement": 94.5, "growth": -49.8}, {"no": 26, "id": "MCE007", "name": "이마트 여주", "manager": "조남오", "category": "할인마트", "subcategory": "이마트", "region": "경기", "region_detail": "경기여주시", "floor": "1층", "type": "성인 / 인샵", "area_total": 142.7, "area_sales": 118.1, "open_date": "2016-05-20", "contract_end": "2026-12-31", "rank": 205, "monthly_avg": 0.0, "daily_sales": 32910.0, "achievement": 117.5, "growth": -25.6}, {"no": 27, "id": "MBE017", "name": "스타필드 하남", "manager": "조민욱", "category": "쇼핑몰", "subcategory": "스타필드", "region": "경기", "region_detail": "경기하남시", "floor": "3층", "type": "복합 / 인샵", "area_total": 264.5, "area_sales": 144.0, "open_date": "2016-09-06", "contract_end": "2030-03-31", "rank": 13, "monthly_avg": 0.0, "daily_sales": 77348.0, "achievement": 87.9, "growth": -10.6}, {"no": 28, "id": "MBK002", "name": "포항 장성", "manager": "황민아", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경북", "region_detail": "경북포항시", "floor": "1층", "type": "복합 / 인샵", "area_total": 248.6, "area_sales": 173.2, "open_date": "2016-10-07", "contract_end": "2026-10-06", "rank": 134, "monthly_avg": 0.0, "daily_sales": 19729.0, "achievement": 58.0, "growth": -66.1}, {"no": 29, "id": "MBE115", "name": "이마트 성남", "manager": "조남오", "category": "할인마트", "subcategory": "이마트", "region": "경기", "region_detail": "경기성남시", "floor": "2층", "type": "성인 / 인샵", "area_total": 269.8, "area_sales": 202, "open_date": "2016-12-16", "contract_end": "2028-03-31", "rank": 35, "monthly_avg": 0.0, "daily_sales": 56786.0, "achievement": 101.4, "growth": -24.7}, {"no": 30, "id": "MBD005", "name": "홈플) 파주 운정", "manager": "공석", "category": "할인마트", "subcategory": "홈플러스", "region": "경기", "region_detail": "경기파주시", "floor": "1층", "type": "성인 / 제외", "area_total": 111.5, "area_sales": 95.5, "open_date": "2016-12-22", "contract_end": "2026-02-28", "rank": 274, "monthly_avg": 0.0, "daily_sales": 13395.0, "achievement": 55.8, "growth": -69.9}, {"no": 31, "id": "MDE007", "name": "화성 봉담", "manager": "이상완", "category": "가두 대리점", "subcategory": "가두 대리점", "region": "경기", "region_detail": "경기화성시", "floor": "1층", "type": "복합 / 인샵", "area_total": 112.2, "area_sales": 82, "open_date": "2017-01-20", "contract_end": "2027-03-31", "rank": 290, "monthly_avg": 0.0, "daily_sales": 6115.0, "achievement": 43.7, "growth": -34.2}, {"no": 32, "id": "MCC002", "name": "이마트 계양", "manager": "공석", "category": "할인마트", "subcategory": "이마트", "region": "인천", "region_detail": "인천계양구", "floor": "B1층", "type": "성인 / 인샵", "area_total": 144.2, "area_sales": 112, "open_date": "2017-02-22", "contract_end": "2026-12-31", "rank": 215, "monthly_avg": 0.0, "daily_sales": 32474.0, "achievement": 124.9, "growth": -36.6}, {"no": 33, "id": "MCM005", "name": "이마트 연제", "manager": "이용수", "category": "할인마트", "subcategory": "이마트", "region": "부산", "region_detail": "부산연제구", "floor": "2층", "type": "성인 / 인샵", "area_total": 125.2, "area_sales": 101.9, "open_date": "2017-05-19", "contract_end": "2026-12-31", "rank": 194, "monthly_avg": 0.0, "daily_sales": 32168.0, "achievement": 114.9, "growth": -11.1}, {"no": 34, "id": "MBD008", "name": "스타필드 고양", "manager": "공석", "category": "쇼핑몰", "subcategory": "스타필드", "region": "경기", "region_detail": "경기고양시", "floor": "2층", "type": "성인 / 인샵", "area_total": 137, "area_sales": 105.3, "open_date": "2017-08-17", "contract_end": "2028-08-16", "rank": 6, "monthly_avg": 0.0, "daily_sales": 224504.0, "achievement": 330.2, "growth": 175.8}, {"no": 35, "id": "MBE021", "name": "이천 사음", "manager": "조남오", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기이천시", "floor": "복층(2층)", "type": "성인 / 인샵", "area_total": 218.2, "area_sales": 81.2, "open_date": "2017-09-29", "contract_end": "2027-09-28", "rank": 292, "monthly_avg": 0.0, "daily_sales": 6094.0, "achievement": 43.5, "growth": -78.6}, {"no": 36, "id": "MBL013", "name": "홈플) 김해", "manager": "이용주", "category": "할인마트", "subcategory": "홈플러스", "region": "경남", "region_detail": "경남김해시", "floor": "2층", "type": "성인 / 인샵", "area_total": 140.4, "area_sales": 127.3, "open_date": "2018-03-14", "contract_end": "2026-08-31 ", "rank": 282, "monthly_avg": 0.0, "daily_sales": 15756.0, "achievement": 71.6, "growth": -54.6}, {"no": 37, "id": "MBH003", "name": "롯아) 부여", "manager": "이용주", "category": "백화점아울렛", "subcategory": "롯데아울렛", "region": "충남", "region_detail": "충남부여군", "floor": "2층", "type": "성인 / 인샵", "area_total": 90.9, "area_sales": 73.6, "open_date": "2018-04-21", "contract_end": "2026-06-30", "rank": 157, "monthly_avg": 0.0, "daily_sales": 10456.0, "achievement": 34.9, "growth": -49.8}, {"no": 38, "id": "MBB025", "name": "명일", "manager": "정동길", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "서울", "region_detail": "서울강동구", "floor": "1층", "type": "성인 / 특화", "area_total": 140.7, "area_sales": 119, "open_date": "2018-08-01", "contract_end": "2028-07-08", "rank": 245, "monthly_avg": 0.0, "daily_sales": 13828.0, "achievement": 69.1, "growth": -67.0}, {"no": 39, "id": "MBF003", "name": "원주 무실", "manager": "정동길", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "강원", "region_detail": "강원원주시", "floor": "복층(2층)", "type": "복합 / 인샵", "area_total": 163.9, "area_sales": 112.2, "open_date": "2018-10-19", "contract_end": "2028-10-18", "rank": 103, "monthly_avg": 0.0, "daily_sales": 30959.0, "achievement": 70.4, "growth": -48.7}, {"no": 40, "id": "MBK004", "name": "안동", "manager": "황민아", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경북", "region_detail": "경북안동시", "floor": "1층", "type": "복합 / 인샵", "area_total": 191.4, "area_sales": 120, "open_date": "2018-11-16", "contract_end": "2028-11-14", "rank": 56, "monthly_avg": 0.0, "daily_sales": 43758.0, "achievement": 68.4, "growth": -31.2}, {"no": 41, "id": "MBN005", "name": "전주 효자", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "전북", "region_detail": "전북전주시", "floor": "1층", "type": "복합 / 인샵", "area_total": 147.8, "area_sales": 84.9, "open_date": "2018-12-07", "contract_end": "2033-12-06", "rank": 71, "monthly_avg": 0.0, "daily_sales": 41757.0, "achievement": 87.0, "growth": -32.3}, {"no": 42, "id": "MDE005", "name": "시흥 베니스스퀘어", "manager": "이상완", "category": "가두 대리점", "subcategory": "가두 대리점", "region": "경기", "region_detail": "경기시흥시", "floor": "1층", "type": "성인 / 특화", "area_total": 35.3, "area_sales": 31, "open_date": "2019-01-25", "contract_end": "2027-01-24", "rank": 276, "monthly_avg": 0.0, "daily_sales": 20288.0, "achievement": 144.9, "growth": -45.0}, {"no": 43, "id": "MBA026", "name": "롯데 건대스타시티", "manager": "엄금란", "category": "백화점", "subcategory": "롯데쇼핑", "region": "서울", "region_detail": "서울광진구", "floor": "5층", "type": "성인 / 제외", "area_total": 70.2, "area_sales": 54.8, "open_date": "2019-03-15", "contract_end": "2027-01-31", "rank": 297, "monthly_avg": 0.0, "daily_sales": 10386.0, "achievement": 74.2, "growth": -45.8}, {"no": 44, "id": "MBE035", "name": "홈플) 화성향남", "manager": "조남오", "category": "할인마트", "subcategory": "홈플러스", "region": "경기", "region_detail": "경기화성시", "floor": "2층", "type": "성인 / 인샵", "area_total": 109.9, "area_sales": 88.8, "open_date": "2019-05-10", "contract_end": "2027-02-28", "rank": 220, "monthly_avg": 0.0, "daily_sales": 30955.0, "achievement": 119.1, "growth": -35.0}, {"no": 45, "id": "MBB015", "name": "홈플) 강동", "manager": "정동길", "category": "할인마트", "subcategory": "홈플러스", "region": "서울", "region_detail": "서울강동구", "floor": "1층", "type": "성인 / 특화", "area_total": 160.9, "area_sales": 140.8, "open_date": "2019-06-14", "contract_end": "2027-02-28", "rank": 114, "monthly_avg": 0.0, "daily_sales": 45165.0, "achievement": 107.5, "growth": -46.6}, {"no": 46, "id": "MBK005", "name": "포항 해도", "manager": "황민아", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경북", "region_detail": "경북포항시", "floor": "복층(2층)", "type": "복합 / 인샵", "area_total": 369.9, "area_sales": 198.2, "open_date": "2019-06-21", "contract_end": "2029-06-20", "rank": 32, "monthly_avg": 0.0, "daily_sales": 41471.0, "achievement": 74.1, "growth": -31.4}, {"no": 47, "id": "MBK006", "name": "영주", "manager": "황민아", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경북", "region_detail": "경북영주시", "floor": "1층", "type": "복합 / 인샵", "area_total": 187.2, "area_sales": 113, "open_date": "2019-06-27", "contract_end": "2029-06-26", "rank": 164, "monthly_avg": 0.0, "daily_sales": 30694.0, "achievement": 80.8, "growth": -35.7}, {"no": 48, "id": "MBE036", "name": "Y스퀘어 용인", "manager": "조남오", "category": "쇼핑몰", "subcategory": "기타(쇼핑몰)", "region": "경기", "region_detail": "경기용인시", "floor": "1층", "type": "복합 / 인샵", "area_total": 173.7, "area_sales": 120, "open_date": "2019-06-28", "contract_end": "2029-04-30", "rank": 247, "monthly_avg": 0.0, "daily_sales": 31078.0, "achievement": 111.0, "growth": -53.8}, {"no": 49, "id": "MBP003", "name": "광주 충장로", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "광주", "region_detail": "광주동구", "floor": "복층(3층)", "type": "복합 / 인샵", "area_total": 369.7, "area_sales": 155.3, "open_date": "2019-07-13", "contract_end": "2030-06-14", "rank": 7, "monthly_avg": 0.0, "daily_sales": 53614.0, "achievement": 81.2, "growth": -28.4}, {"no": 50, "id": "MBH004", "name": "아산 풍기", "manager": "엄초희", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충남", "region_detail": "충남아산시", "floor": "1층", "type": "복합 / 인샵", "area_total": 199.6, "area_sales": 147, "open_date": "2019-08-15", "contract_end": "2026-08-14", "rank": 84, "monthly_avg": 0.0, "daily_sales": 36198.0, "achievement": 75.4, "growth": -40.3}, {"no": 51, "id": "MBG007", "name": "충주 연수", "manager": "엄초희", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충북", "region_detail": "충북충주시", "floor": "1층", "type": "복합 / 인샵", "area_total": 245.8, "area_sales": 156, "open_date": "2019-08-15", "contract_end": "2027-08-14", "rank": 204, "monthly_avg": 0.0, "daily_sales": 17830.0, "achievement": 55.7, "growth": -51.0}, {"no": 52, "id": "MBE043", "name": "엔터식스 안양", "manager": "엄금란", "category": "쇼핑몰", "subcategory": "엔터식스", "region": "경기", "region_detail": "경기안양시", "floor": "1층", "type": "성인 / 인샵", "area_total": 97.2, "area_sales": 82, "open_date": "2019-08-30", "contract_end": "2026-08-29", "rank": 97, "monthly_avg": 0.0, "daily_sales": 47741.0, "achievement": 125.6, "growth": -3.1}, {"no": 53, "id": "MBL019", "name": "업스퀘어 울산", "manager": "이용수", "category": "쇼핑몰", "subcategory": "기타(쇼핑몰)", "region": "울산", "region_detail": "울산남구", "floor": "4층", "type": "복합 / 인샵", "area_total": 205, "area_sales": 139.9, "open_date": "2019-09-27", "contract_end": "2026-09-10", "rank": 125, "monthly_avg": 0.0, "daily_sales": 23148.0, "achievement": 82.7, "growth": -34.6}, {"no": 54, "id": "MDC002", "name": "부평 아이즈빌", "manager": "이상완", "category": "가두 대리점", "subcategory": "가두 대리점", "region": "인천", "region_detail": "인천부평구", "floor": "1층", "type": "성인 / 인샵", "area_total": 58.7, "area_sales": 56.3, "open_date": "2019-10-02", "contract_end": "2026-06-30", "rank": 279, "monthly_avg": 0.0, "daily_sales": 14779.0, "achievement": 123.2, "growth": 17.1}, {"no": 55, "id": "MBM013", "name": "스타필드 시티 명지", "manager": "이용수", "category": "쇼핑몰", "subcategory": "스타필드", "region": "부산", "region_detail": "부산강서구", "floor": "2층", "type": "성인 / 인샵", "area_total": 58.7, "area_sales": 51.2, "open_date": "2019-10-29", "contract_end": "2027-10-28", "rank": 146, "monthly_avg": 0.0, "daily_sales": 19049.0, "achievement": 56.0, "growth": -39.8}, {"no": 56, "id": "MBE044", "name": "경기 광주", "manager": "조남오", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기광주시", "floor": "1층", "type": "복합 / 인샵", "area_total": 167.2, "area_sales": 104, "open_date": "2019-11-15", "contract_end": "2026-11-14", "rank": 46, "monthly_avg": 0.0, "daily_sales": 44862.0, "achievement": 89.7, "growth": -36.0}, {"no": 57, "id": "MCF003", "name": "롯마) 춘천", "manager": "정동길", "category": "할인마트", "subcategory": "롯데마트", "region": "강원", "region_detail": "강원춘천시", "floor": "2층", "type": "성인 / 특화", "area_total": 191.0, "area_sales": 126.9, "open_date": "2019-11-15", "contract_end": "2026-12-31", "rank": 242, "monthly_avg": 0.0, "daily_sales": 20346.0, "achievement": 92.5, "growth": -38.3}, {"no": 58, "id": "MBP004", "name": "홈플) 동광주", "manager": "김아경", "category": "할인마트", "subcategory": "홈플러스", "region": "광주", "region_detail": "광주북구", "floor": "1층", "type": "성인 / 인샵", "area_total": 354.3, "area_sales": 267.5, "open_date": "2019-11-20", "contract_end": "2026-05-31 ", "rank": 116, "monthly_avg": 0.0, "daily_sales": 41633.0, "achievement": 86.7, "growth": -44.2}, {"no": 59, "id": "MBE045", "name": "용인 하갈", "manager": "조남오", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기용인시", "floor": "복층(3층)", "type": "복합 / 인샵", "area_total": 265.4, "area_sales": 121.9, "open_date": "2019-11-22", "contract_end": "2029-11-21", "rank": 265, "monthly_avg": 0.0, "daily_sales": 22347.0, "achievement": 124.2, "growth": -58.9}, {"no": 60, "id": "MCA027", "name": "롯마) 서울양평", "manager": "엄금란", "category": "할인마트", "subcategory": "롯데마트", "region": "서울", "region_detail": "서울영등포구", "floor": "B1층", "type": "복합 / 인샵", "area_total": 154.4, "area_sales": 99.2, "open_date": "2019-12-20", "contract_end": "2026-12-31", "rank": 269, "monthly_avg": 0.0, "daily_sales": 27843.0, "achievement": 174.0, "growth": -25.3}, {"no": 61, "id": "MCB016", "name": "엔터식스 천호", "manager": "정동길", "category": "쇼핑몰", "subcategory": "엔터식스", "region": "서울", "region_detail": "서울강동구", "floor": "B1층", "type": "성인 / 제외", "area_total": 62.9, "area_sales": 57.3, "open_date": "2019-12-30", "contract_end": "2027-02-28", "rank": 58, "monthly_avg": 0.0, "daily_sales": 63955.0, "achievement": 152.3, "growth": -41.3}, {"no": 62, "id": "MBJ010", "name": "대구 진천", "manager": "황민아", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "대구", "region_detail": "대구달서구", "floor": "복층(2층)", "type": "복합 / 인샵", "area_total": 521, "area_sales": 225, "open_date": "2020-01-17", "contract_end": "2026-11-27", "rank": 120, "monthly_avg": 0.0, "daily_sales": 38447.0, "achievement": 96.1, "growth": -55.6}, {"no": 63, "id": "MBG008", "name": "메가폴리스 청주", "manager": "엄초희", "category": "쇼핑몰", "subcategory": "기타(쇼핑몰)", "region": "충북", "region_detail": "충북청주시", "floor": "2층", "type": "복합 / 인샵", "area_total": 280.4, "area_sales": 197.5, "open_date": "2020-01-22", "contract_end": "2026-01-21", "rank": 166, "monthly_avg": 0.0, "daily_sales": 48193.0, "achievement": 133.9, "growth": -5.9}, {"no": 64, "id": "MBJ008", "name": "홈플) 성서", "manager": "황민아", "category": "할인마트", "subcategory": "홈플러스", "region": "대구", "region_detail": "대구달서구", "floor": "B2층", "type": "성인 / 제외", "area_total": 324.9, "area_sales": 267.2, "open_date": "2020-02-14", "contract_end": "2026-11-30", "rank": 8, "monthly_avg": 0.0, "daily_sales": 72252.0, "achievement": 88.1, "growth": -25.6}, {"no": 65, "id": "MBN007", "name": "전주 객사", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "전북", "region_detail": "전북전주시", "floor": "복층(4층)", "type": "복합 / 인샵", "area_total": 451.1, "area_sales": 248, "open_date": "2020-02-14", "contract_end": "2026-12-30", "rank": 81, "monthly_avg": 0.0, "daily_sales": 37298.0, "achievement": 84.8, "growth": -14.4}, {"no": 66, "id": "MCB018", "name": "롯마) 서초", "manager": "정동길", "category": "할인마트", "subcategory": "롯데마트", "region": "서울", "region_detail": "서울서초구", "floor": "B1층", "type": "복합 / 인샵", "area_total": 194.1, "area_sales": 132.9, "open_date": "2020-02-21", "contract_end": "2026-12-31", "rank": 218, "monthly_avg": 0.0, "daily_sales": 39145.0, "achievement": 122.3, "growth": -42.4}, {"no": 67, "id": "MCP009", "name": "롯마) 월드컵", "manager": "김아경", "category": "할인마트", "subcategory": "롯데마트", "region": "광주", "region_detail": "광주서구", "floor": "2층", "type": "성인 / 인샵", "area_total": 140.3, "area_sales": 134.5, "open_date": "2020-03-20", "contract_end": "2026-12-31", "rank": 156, "monthly_avg": 0.0, "daily_sales": 26119.0, "achievement": 72.6, "growth": -43.6}, {"no": 68, "id": "MBE049", "name": "동탄 능동", "manager": "조남오", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기화성시", "floor": "복층(3층)", "type": "복합 / 인샵", "area_total": 255.3, "area_sales": 123.4, "open_date": "2020-03-27", "contract_end": "2028-03-26", "rank": 177, "monthly_avg": 0.0, "daily_sales": 44230.0, "achievement": 138.2, "growth": -36.5}, {"no": 69, "id": "MCM018", "name": "신세계 센텀", "manager": "이용수", "category": "백화점", "subcategory": "신세계", "region": "부산", "region_detail": "부산해운대구", "floor": "B2층", "type": "성인 / 제외", "area_total": 43.8, "area_sales": 41.1, "open_date": "2020-03-27", "contract_end": "2026-07-31", "rank": 188, "monthly_avg": 0.0, "daily_sales": 25798.0, "achievement": 80.6, "growth": -49.4}, {"no": 70, "id": "MBD010", "name": "의정부 민락", "manager": "조민욱", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기도의정부시", "floor": "1층", "type": "복합 / 인샵", "area_total": 292.4, "area_sales": 173.1, "open_date": "2020-04-17", "contract_end": "2030-02-02", "rank": 39, "monthly_avg": 0.0, "daily_sales": 90430.0, "achievement": 167.5, "growth": -31.4}, {"no": 71, "id": "MCF006", "name": "이마트 춘천", "manager": "정동길", "category": "할인마트", "subcategory": "이마트", "region": "강원", "region_detail": "강원춘천시", "floor": "2층", "type": "성인 / 인샵", "area_total": 100.2, "area_sales": 91, "open_date": "2020-05-15", "contract_end": "2026-12-31", "rank": 119, "monthly_avg": 0.0, "daily_sales": 46246.0, "achievement": 121.7, "growth": -12.0}, {"no": 72, "id": "MBE050", "name": "스타필드 시티 위례", "manager": "조민욱", "category": "쇼핑몰", "subcategory": "스타필드", "region": "경기", "region_detail": "경기하남시", "floor": "3층", "type": "성인 / 인샵", "area_total": 153.2, "area_sales": 112.3, "open_date": "2020-05-22", "contract_end": "2029-04-16", "rank": 211, "monthly_avg": 0.0, "daily_sales": 20655.0, "achievement": 64.5, "growth": -20.7}, {"no": 73, "id": "MCN007", "name": "롯마) 군산", "manager": "김아경", "category": "할인마트", "subcategory": "롯데마트", "region": "전북", "region_detail": "전북군산시", "floor": "3층", "type": "복합 / 인샵", "area_total": 282.8, "area_sales": 203.2, "open_date": "2020-05-29", "contract_end": "2026-12-31", "rank": 64, "monthly_avg": 0.0, "daily_sales": 52210.0, "achievement": 113.5, "growth": -13.0}, {"no": 74, "id": "MBP005", "name": "광주 연제", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "광주", "region_detail": "광주북구", "floor": "1층", "type": "복합 / 인샵", "area_total": 250, "area_sales": 176.3, "open_date": "2020-06-12", "contract_end": "2028-06-11", "rank": 27, "monthly_avg": 0.0, "daily_sales": 52682.0, "achievement": 82.3, "growth": -48.8}, {"no": 75, "id": "MBH005", "name": "공주 신관", "manager": "이용주", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충남", "region_detail": "충남공주시", "floor": "복층(2층)", "type": "복합 / 인샵", "area_total": 330.8, "area_sales": 258.8, "open_date": "2020-06-19", "contract_end": "2028-05-03", "rank": 88, "monthly_avg": 0.0, "daily_sales": 52953.0, "achievement": 110.3, "growth": -23.8}, {"no": 76, "id": "MBO003", "name": "순천", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "전남", "region_detail": "전남순천시", "floor": "복층(2층)", "type": "복합 / 인샵", "area_total": 394.5, "area_sales": 294.3, "open_date": "2020-06-26", "contract_end": "2027-05-19", "rank": 85, "monthly_avg": 0.0, "daily_sales": 57466.0, "achievement": 114.9, "growth": 31.2}, {"no": 77, "id": "MBP006", "name": "광주 주월", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "광주", "region_detail": "광주남구", "floor": "1층", "type": "복합 / 인샵", "area_total": 190, "area_sales": 141.5, "open_date": "2020-07-17", "contract_end": "2028-07-16", "rank": 198, "monthly_avg": 0.0, "daily_sales": 44097.0, "achievement": 157.5, "growth": -15.3}, {"no": 78, "id": "MBK007", "name": "경주 용강", "manager": "황민아", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경북", "region_detail": "경북경주시", "floor": "복층(2층)", "type": "복합 / 인샵", "area_total": 354.9, "area_sales": 271.9, "open_date": "2020-07-24", "contract_end": "2030-07-23", "rank": 33, "monthly_avg": 0.0, "daily_sales": 47619.0, "achievement": 79.4, "growth": -44.9}, {"no": 79, "id": "MCL020", "name": "NC 창원", "manager": "이용주", "category": "쇼핑몰", "subcategory": "이랜드", "region": "경남", "region_detail": "경남창원시", "floor": "B1층", "type": "성인 / 인샵", "area_total": 74.1, "area_sales": 66.9, "open_date": "2020-07-24", "contract_end": "2027-02-28", "rank": 223, "monthly_avg": 0.0, "daily_sales": 8876.0, "achievement": 34.1, "growth": -52.4}, {"no": 80, "id": "MBH006", "name": "아산 방축", "manager": "엄초희", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충남", "region_detail": "충남아산시", "floor": "복층(2층)", "type": "복합 / 인샵", "area_total": 180.3, "area_sales": 125.9, "open_date": "2020-08-07", "contract_end": "2027-08-06", "rank": 299, "monthly_avg": 0.0, "daily_sales": 12914.0, "achievement": 107.6, "growth": -25.6}, {"no": 81, "id": "MBB017", "name": "홈플) 금천", "manager": "엄금란", "category": "할인마트", "subcategory": "홈플러스", "region": "서울", "region_detail": "서울금천구", "floor": "1층", "type": "성인 / 제외", "area_total": 231.3, "area_sales": 173.8, "open_date": "2020-08-14", "contract_end": "2027-02-28", "rank": 126, "monthly_avg": 0.0, "daily_sales": 40452.0, "achievement": 101.1, "growth": -37.3}, {"no": 82, "id": "MBH007", "name": "서산 예천", "manager": "엄초희", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충남", "region_detail": "충남서산시", "floor": "1층", "type": "복합 / 인샵", "area_total": 237.8, "area_sales": 184, "open_date": "2020-08-21", "contract_end": "2030-08-20", "rank": 59, "monthly_avg": 0.0, "daily_sales": 44157.0, "achievement": 81.8, "growth": -51.5}, {"no": 83, "id": "MCH018", "name": "신세계 천안아산", "manager": "엄초희", "category": "백화점", "subcategory": "신세계", "region": "충남", "region_detail": "충남천안시", "floor": "1층", "type": "성인 / 인샵", "area_total": 109.2, "area_sales": 93.8, "open_date": "2020-08-28", "contract_end": "2026-04-30", "rank": 101, "monthly_avg": 0.0, "daily_sales": 29530.0, "achievement": 82.0, "growth": -7.7}, {"no": 84, "id": "MBQ003", "name": "제주 연삼", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "제주", "region_detail": "제주제주시", "floor": "1층", "type": "성인 / 인샵", "area_total": 157, "area_sales": 141, "open_date": "2020-09-04", "contract_end": "2030-08-27", "rank": 207, "monthly_avg": 0.0, "daily_sales": 41133.0, "achievement": 171.4, "growth": -5.5}, {"no": 85, "id": "MBE055", "name": "평택 죽백", "manager": "조남오", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기평택시", "floor": "1층", "type": "복합 / 인샵", "area_total": 249.6, "area_sales": 163.4, "open_date": "2020-09-04", "contract_end": "2028-09-03", "rank": 183, "monthly_avg": 0.0, "daily_sales": 21164.0, "achievement": 70.5, "growth": -44.2}, {"no": 86, "id": "MBB018", "name": "타임스트림 신림", "manager": "엄금란", "category": "쇼핑몰", "subcategory": "기타(쇼핑몰)", "region": "서울", "region_detail": "서울관악구", "floor": "3층", "type": "복합 / 인샵", "area_total": 115.9, "area_sales": 83, "open_date": "2020-09-11", "contract_end": "2026-10-31", "rank": 20, "monthly_avg": 0.0, "daily_sales": 70060.0, "achievement": 113.0, "growth": -37.0}, {"no": 87, "id": "MBJ012", "name": "대구 태전", "manager": "황민아", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "대구", "region_detail": "대구북구", "floor": "1층", "type": "복합 / 인샵", "area_total": 422.5, "area_sales": 227, "open_date": "2020-09-18", "contract_end": "2030-09-17", "rank": 86, "monthly_avg": 0.0, "daily_sales": 36444.0, "achievement": 72.9, "growth": -48.8}, {"no": 88, "id": "MBK008", "name": "경산 정평", "manager": "황민아", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경북", "region_detail": "경북경산시", "floor": "복층(2층)", "type": "복합 / 인샵", "area_total": 431.8, "area_sales": 299.9, "open_date": "2020-09-25", "contract_end": "2027-09-24", "rank": 69, "monthly_avg": 0.0, "daily_sales": 53558.0, "achievement": 111.6, "growth": -24.4}, {"no": 89, "id": "MBE058", "name": "스타필드 안성", "manager": "조남오", "category": "쇼핑몰", "subcategory": "스타필드", "region": "경기", "region_detail": "경기안성시", "floor": "3층", "type": "성인 / 인샵", "area_total": 96.8, "area_sales": 84.2, "open_date": "2020-10-05", "contract_end": "2027-10-04", "rank": 141, "monthly_avg": 0.0, "daily_sales": 61771.0, "achievement": 171.6, "growth": 61.4}, {"no": 90, "id": "MBK009", "name": "경주 노동", "manager": "황민아", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경북", "region_detail": "경북경주시", "floor": "1층", "type": "성인 / 인샵", "area_total": 103.2, "area_sales": 81, "open_date": "2020-10-08", "contract_end": "2026-10-07", "rank": 266, "monthly_avg": 0.0, "daily_sales": 17235.0, "achievement": 78.3, "growth": -32.1}, {"no": 91, "id": "MCM020", "name": "NC 해운대", "manager": "이용수", "category": "쇼핑몰", "subcategory": "이랜드", "region": "부산", "region_detail": "부산해운대구", "floor": "4층", "type": "성인 / 인샵", "area_total": 129.5, "area_sales": 107.6, "open_date": "2020-10-23", "contract_end": "2027-02-28", "rank": 197, "monthly_avg": 0.0, "daily_sales": 27508.0, "achievement": 98.2, "growth": -31.9}, {"no": 92, "id": "MBM015", "name": "부산 대영시네마", "manager": "이용수", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "부산", "region_detail": "부산중구", "floor": "1층", "type": "복합 / 인샵", "area_total": 283.3, "area_sales": 195.7, "open_date": "2020-11-13", "contract_end": "2026-11-30", "rank": 2, "monthly_avg": 0.0, "daily_sales": 99819.0, "achievement": 99.8, "growth": -21.0}, {"no": 93, "id": "MBF004", "name": "속초 조양", "manager": "정동길", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "강원", "region_detail": "강원속초시", "floor": "1층", "type": "복합 / 인샵", "area_total": 196.2, "area_sales": 138.1, "open_date": "2020-11-20", "contract_end": "2028-10-29", "rank": 95, "monthly_avg": 0.0, "daily_sales": 27193.0, "achievement": 71.6, "growth": -47.5}, {"no": 94, "id": "MBK010", "name": "구미 광평", "manager": "황민아", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경북", "region_detail": "경북구미시", "floor": "1층", "type": "복합 / 인샵", "area_total": 246.4, "area_sales": 170, "open_date": "2020-11-20", "contract_end": "2030-11-19", "rank": 34, "monthly_avg": 0.0, "daily_sales": 43940.0, "achievement": 73.2, "growth": -35.6}, {"no": 95, "id": "MBP013", "name": "이마트 광주", "manager": "김아경", "category": "할인마트", "subcategory": "이마트", "region": "광주", "region_detail": "광주서구", "floor": "2층", "type": "성인 / 제외", "area_total": 107.7, "area_sales": 95.8, "open_date": "2020-11-26", "contract_end": "2028-03-31", "rank": 124, "monthly_avg": 0.0, "daily_sales": 28558.0, "achievement": 84.0, "growth": -7.4}, {"no": 96, "id": "MBL022", "name": "양산 석산", "manager": "이용주", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경남", "region_detail": "경남양산시", "floor": "1층", "type": "복합 / 인샵", "area_total": 165.7, "area_sales": 118, "open_date": "2020-11-27", "contract_end": "2026-11-26", "rank": 264, "monthly_avg": 0.0, "daily_sales": 16330.0, "achievement": 90.7, "growth": -47.8}, {"no": 97, "id": "MBL023", "name": "김해 진영", "manager": "이용주", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경남", "region_detail": "경남김해시", "floor": "복층(2층)", "type": "복합 / 인샵", "area_total": 384.8, "area_sales": 284, "open_date": "2020-12-04", "contract_end": "2030-12-03", "rank": 93, "monthly_avg": 0.0, "daily_sales": 45678.0, "achievement": 108.8, "growth": -26.6}, {"no": 98, "id": "MBA031", "name": "김포파인스타몰", "manager": "공석", "category": "쇼핑몰", "subcategory": "기타(쇼핑몰)", "region": "경기", "region_detail": "경기김포시", "floor": "복층(2층)", "type": "복합 / 인샵", "area_total": 227.1, "area_sales": 132.8, "open_date": "2020-12-11", "contract_end": "2030-12-10", "rank": 254, "monthly_avg": 0.0, "daily_sales": 28018.0, "achievement": 140.1, "growth": -39.4}, {"no": 99, "id": "MCE053", "name": "이마트 부천", "manager": "조민욱", "category": "할인마트", "subcategory": "이마트", "region": "경기", "region_detail": "경기부천시", "floor": "6층", "type": "성인 / 인샵", "area_total": 178.4, "area_sales": 153.1, "open_date": "2020-12-11", "contract_end": "2026-12-31", "rank": 109, "monthly_avg": 0.0, "daily_sales": 48158.0, "achievement": 126.7, "growth": -16.4}, {"no": 100, "id": "MBF005", "name": "동해 부곡", "manager": "정동길", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "강원", "region_detail": "강원동해", "floor": "1층", "type": "복합 / 인샵", "area_total": 299.7, "area_sales": 199.7, "open_date": "2020-12-18", "contract_end": "2027-12-17", "rank": 44, "monthly_avg": 0.0, "daily_sales": 25222.0, "achievement": 52.5, "growth": -54.1}, {"no": 101, "id": "MCL022", "name": "이마트 양산", "manager": "이용주", "category": "할인마트", "subcategory": "이마트", "region": "경남", "region_detail": "경남양산시", "floor": "2층", "type": "성인 / 인샵", "area_total": 110.9, "area_sales": 94.3, "open_date": "2020-12-18", "contract_end": "2026-12-31", "rank": 170, "monthly_avg": 0.0, "daily_sales": 38984.0, "achievement": 114.7, "growth": -17.6}, {"no": 102, "id": "MBF006", "name": "남춘천", "manager": "정동길", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "강원", "region_detail": "강원춘천시", "floor": "1층", "type": "복합 / 인샵", "area_total": 408.7, "area_sales": 261.6, "open_date": "2020-12-23", "contract_end": "2027-12-22", "rank": 52, "monthly_avg": 0.0, "daily_sales": 46342.0, "achievement": 82.8, "growth": -34.1}, {"no": 103, "id": "MCH021", "name": "이마트 천안", "manager": "엄초희", "category": "할인마트", "subcategory": "이마트", "region": "충남", "region_detail": "충남천안시", "floor": "2층", "type": "성인 / 인샵", "area_total": 99.6, "area_sales": 83.7, "open_date": "2020-12-23", "contract_end": "2026-12-31", "rank": 200, "monthly_avg": 0.0, "daily_sales": 18532.0, "achievement": 66.2, "growth": -57.0}, {"no": 104, "id": "MBM016", "name": "부산 경성대", "manager": "이용수", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "부산", "region_detail": "부산남구", "floor": "복층(2층)", "type": "복합 / 인샵", "area_total": 358.8, "area_sales": 228, "open_date": "2021-01-15", "contract_end": "2030-11-30", "rank": 5, "monthly_avg": 0.0, "daily_sales": 110657.0, "achievement": 141.9, "growth": -21.5}, {"no": 105, "id": "MCK015", "name": "이마트 동구미", "manager": "황민아", "category": "할인마트", "subcategory": "이마트", "region": "경북", "region_detail": "경북구미시", "floor": "2층", "type": "성인 / 인샵", "area_total": 113.1, "area_sales": 101.5, "open_date": "2021-01-22", "contract_end": "2026-12-31", "rank": 289, "monthly_avg": 0.0, "daily_sales": 9555.0, "achievement": 59.7, "growth": -52.3}, {"no": 106, "id": "MCC010", "name": "롯마) 삼산", "manager": "공석", "category": "할인마트", "subcategory": "롯데마트", "region": "인천", "region_detail": "인천부평구", "floor": "2층", "type": "복합 / 인샵", "area_total": 244.5, "area_sales": 228.6, "open_date": "2021-02-05", "contract_end": "2026-12-31", "rank": 155, "monthly_avg": 0.0, "daily_sales": 50968.0, "achievement": 159.3, "growth": -42.9}, {"no": 107, "id": "MBD012", "name": "홈플) 의정부", "manager": "조민욱", "category": "할인마트", "subcategory": "홈플러스", "region": "경기", "region_detail": "경기의정부시", "floor": "1층", "type": "성인 / 인샵", "area_total": 298.2, "area_sales": 214.4, "open_date": "2021-02-19", "contract_end": "2027-02-28", "rank": 90, "monthly_avg": 0.0, "daily_sales": 39072.0, "achievement": 65.1, "growth": -36.8}, {"no": 108, "id": "MBK011", "name": "김천", "manager": "황민아", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경북", "region_detail": "경북김천시", "floor": "1층", "type": "복합 / 인샵", "area_total": 299.2, "area_sales": 176.6, "open_date": "2021-02-26", "contract_end": "2031-02-25", "rank": 163, "monthly_avg": 0.0, "daily_sales": 27204.0, "achievement": 68.0, "growth": -45.2}, {"no": 109, "id": "MBC012", "name": "홈플) 간석", "manager": "공석", "category": "할인마트", "subcategory": "홈플러스", "region": "인천", "region_detail": "인천남동구", "floor": "1층", "type": "성인 / 인샵", "area_total": 320.6, "area_sales": 257.2, "open_date": "2021-02-26", "contract_end": "2027-02-28", "rank": 121, "monthly_avg": 0.0, "daily_sales": 44509.0, "achievement": 101.2, "growth": -43.9}, {"no": 110, "id": "MCI013", "name": "이마트 대전TM", "manager": "이용주", "category": "할인마트", "subcategory": "이마트", "region": "대전", "region_detail": "대전동구", "floor": "4층", "type": "성인 / 인샵", "area_total": 250.4, "area_sales": 223.7, "open_date": "2021-03-05", "contract_end": "2026-12-31", "rank": 79, "monthly_avg": 0.0, "daily_sales": 41796.0, "achievement": 90.9, "growth": -17.7}, {"no": 111, "id": "MBI005", "name": "홈플) 유성", "manager": "이용주", "category": "할인마트", "subcategory": "홈플러스", "region": "대전", "region_detail": "대전유성구", "floor": "3층", "type": "성인 / 인샵", "area_total": 273.1, "area_sales": 211.8, "open_date": "2021-03-19", "contract_end": "2026-11-30", "rank": 102, "monthly_avg": 0.0, "daily_sales": 21391.0, "achievement": 42.8, "growth": -69.1}, {"no": 112, "id": "MBE062", "name": "롯아) 파주", "manager": "공석", "category": "백화점아울렛", "subcategory": "롯데아울렛", "region": "경기", "region_detail": "경기파주시", "floor": "3층", "type": "성인 / 인샵", "area_total": 99.4, "area_sales": 77.9, "open_date": "2021-04-02", "contract_end": "2026-06-30", "rank": 253, "monthly_avg": 0.0, "daily_sales": 4289.0, "achievement": 21.4, "growth": -79.0}, {"no": 113, "id": "MBM018", "name": "홈플) 아시아드", "manager": "이용수", "category": "할인마트", "subcategory": "홈플러스", "region": "부산", "region_detail": "부산연제구", "floor": "B2층", "type": "성인 / 인샵", "area_total": 362.1, "area_sales": 292.8, "open_date": "2021-04-08", "contract_end": "2026-08-31 ", "rank": 72, "monthly_avg": 0.0, "daily_sales": 43470.0, "achievement": 86.9, "growth": -35.8}, {"no": 114, "id": "MBB020", "name": "홈플) 강서", "manager": "엄금란", "category": "할인마트", "subcategory": "홈플러스", "region": "서울", "region_detail": "서울강서구", "floor": "3층", "type": "성인 / 인샵", "area_total": 238.6, "area_sales": 198.7, "open_date": "2021-04-08", "contract_end": "2027-02-28", "rank": 139, "monthly_avg": 0.0, "daily_sales": 44064.0, "achievement": 95.8, "growth": -41.8}, {"no": 115, "id": "MBA033", "name": "홈플) 방학", "manager": "정동길", "category": "할인마트", "subcategory": "홈플러스", "region": "서울", "region_detail": "서울도봉구", "floor": "1층", "type": "성인 / 인샵", "area_total": 321.8, "area_sales": 257.2, "open_date": "2021-04-08", "contract_end": "2026-05-31 ", "rank": 14, "monthly_avg": 0.0, "daily_sales": 65875.0, "achievement": 91.5, "growth": -54.8}, {"no": 116, "id": "MBJ013", "name": "홈플) 칠곡", "manager": "황민아", "category": "할인마트", "subcategory": "홈플러스", "region": "대구", "region_detail": "대구북구", "floor": "3층", "type": "성인 / 인샵", "area_total": 339.5, "area_sales": 263.8, "open_date": "2021-04-22", "contract_end": "2027-02-28", "rank": 162, "monthly_avg": 0.0, "daily_sales": 26375.0, "achievement": 73.3, "growth": -45.3}, {"no": 117, "id": "MBN008", "name": "군산 나운", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "전북", "region_detail": "전북군산시", "floor": "복층(2층)", "type": "복합 / 인샵", "area_total": 447.3, "area_sales": 243.6, "open_date": "2021-04-23", "contract_end": "2027-04-22", "rank": 176, "monthly_avg": 0.0, "daily_sales": 27027.0, "achievement": 96.5, "growth": -43.1}, {"no": 118, "id": "MCE059", "name": "이마트 안양", "manager": "엄금란", "category": "할인마트", "subcategory": "이마트", "region": "경기", "region_detail": "경기안양시", "floor": "2층", "type": "성인 / 인샵", "area_total": 110.2, "area_sales": 91.6, "open_date": "2021-04-30", "contract_end": "2026-12-31", "rank": 285, "monthly_avg": 0.0, "daily_sales": 17964.0, "achievement": 99.8, "growth": -48.5}, {"no": 119, "id": "MBH009", "name": "당진 중앙", "manager": "엄초희", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충남", "region_detail": "충남당진시", "floor": "복층(2층)", "type": "복합 / 인샵", "area_total": 303.1, "area_sales": 196.2, "open_date": "2021-05-07", "contract_end": "2031-05-06", "rank": 208, "monthly_avg": 0.0, "daily_sales": 26695.0, "achievement": 83.4, "growth": -62.2}, {"no": 120, "id": "MBK012", "name": "영천", "manager": "황민아", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경북", "region_detail": "경북영천시", "floor": "1층", "type": "복합 / 인샵", "area_total": 200.8, "area_sales": 127.3, "open_date": "2021-05-07", "contract_end": "2028-05-06", "rank": 224, "monthly_avg": 0.0, "daily_sales": 33981.0, "achievement": 141.6, "growth": -12.0}, {"no": 121, "id": "MBJ014", "name": "대구 반야월", "manager": "황민아", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "대구", "region_detail": "대구동구", "floor": "복층(3층)", "type": "복합 / 인샵", "area_total": 325.2, "area_sales": 169.3, "open_date": "2021-05-14", "contract_end": "2031-05-19", "rank": 219, "monthly_avg": 0.0, "daily_sales": 37897.0, "achievement": 135.3, "growth": 21.2}, {"no": 122, "id": "MBO005", "name": "나주 혁신도시", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "전남", "region_detail": "전남나주시", "floor": "1층", "type": "복합 / 인샵", "area_total": 250.5, "area_sales": 167, "open_date": "2021-05-21", "contract_end": "2028-05-20", "rank": 22, "monthly_avg": 0.0, "daily_sales": 42245.0, "achievement": 70.4, "growth": -52.8}, {"no": 123, "id": "MBH010", "name": "당진 시곡", "manager": "엄초희", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충남", "region_detail": "충남당진시", "floor": "1층", "type": "복합 / 인샵", "area_total": 200.7, "area_sales": 133.2, "open_date": "2021-05-21", "contract_end": "2031-05-20", "rank": 210, "monthly_avg": 0.0, "daily_sales": 32974.0, "achievement": 126.8, "growth": -53.2}, {"no": 124, "id": "MBE066", "name": "동탄 레이크꼬모", "manager": "조남오", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기화성시", "floor": "B1층", "type": "성인 / 인샵", "area_total": 173.9, "area_sales": 154.3, "open_date": "2021-05-28", "contract_end": "2029-04-26", "rank": 54, "monthly_avg": 0.0, "daily_sales": 37088.0, "achievement": 80.6, "growth": -28.6}, {"no": 125, "id": "MCB026", "name": "이마트 구로", "manager": "엄금란", "category": "할인마트", "subcategory": "이마트", "region": "서울", "region_detail": "서울구로구", "floor": "3층", "type": "성인 / 인샵", "area_total": 115.6, "area_sales": 99.6, "open_date": "2021-05-28", "contract_end": "2026-12-31", "rank": 283, "monthly_avg": 0.0, "daily_sales": 7055.0, "achievement": 50.4, "growth": -74.7}, {"no": 126, "id": "MBO006", "name": "목포 옥암", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "전남", "region_detail": "전남목포시", "floor": "1층", "type": "복합 / 인샵", "area_total": 247.0, "area_sales": 195, "open_date": "2021-06-04", "contract_end": "2031-06-03", "rank": 49, "monthly_avg": 0.0, "daily_sales": 79148.0, "achievement": 164.9, "growth": -19.4}, {"no": 127, "id": "MBE063", "name": "일산 덕이", "manager": "공석", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기고양시", "floor": "1층", "type": "복합 / 인샵", "area_total": 421.5, "area_sales": 260.9, "open_date": "2021-06-11", "contract_end": "2029-06-10", "rank": 63, "monthly_avg": 0.0, "daily_sales": 43499.0, "achievement": 75.0, "growth": -55.8}, {"no": 128, "id": "MCE061", "name": "이마트 광명소하", "manager": "조민욱", "category": "할인마트", "subcategory": "이마트", "region": "경기", "region_detail": "경기광명시", "floor": "1층", "type": "성인 / 인샵", "area_total": 132.8, "area_sales": 111.2, "open_date": "2021-06-11", "contract_end": "2026-12-31", "rank": 261, "monthly_avg": 0.0, "daily_sales": 24714.0, "achievement": 123.6, "growth": 24.7}, {"no": 129, "id": "MBN009", "name": "전주 에코시티", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "전북", "region_detail": "전북전주시", "floor": "복층(2층)", "type": "복합 / 인샵", "area_total": 295.0, "area_sales": 192.1, "open_date": "2021-06-18", "contract_end": "2029-06-17", "rank": 78, "monthly_avg": 0.0, "daily_sales": 49979.0, "achievement": 96.1, "growth": -37.1}, {"no": 130, "id": "MBA034", "name": "홍대", "manager": "엄금란", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "서울", "region_detail": "서울마포구", "floor": "2층", "type": "복합 / 인샵", "area_total": 340.0, "area_sales": 220.1, "open_date": "2021-06-25", "contract_end": "2026-05-20", "rank": 48, "monthly_avg": 0.0, "daily_sales": 60394.0, "achievement": 137.3, "growth": -19.2}, {"no": 131, "id": "MCF011", "name": "이마트 원주", "manager": "정동길", "category": "할인마트", "subcategory": "이마트", "region": "강원", "region_detail": "강원원주시", "floor": "1층", "type": "성인 / 제외", "area_total": 158.9, "area_sales": 136.9, "open_date": "2021-07-23", "contract_end": "2026-12-31", "rank": 233, "monthly_avg": 0.0, "daily_sales": 23185.0, "achievement": 77.3, "growth": -12.4}, {"no": 132, "id": "MBC013", "name": "송도 인천대입구역", "manager": "공석", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "인천", "region_detail": "인천연수구", "floor": "1층", "type": "복합 / 인샵", "area_total": 270.8, "area_sales": 190, "open_date": "2021-09-03", "contract_end": "2026-09-02", "rank": 110, "monthly_avg": 0.0, "daily_sales": 37754.0, "achievement": 67.4, "growth": -51.2}, {"no": 133, "id": "MCH022", "name": "롯마) 성정", "manager": "엄초희", "category": "할인마트", "subcategory": "롯데마트", "region": "충남", "region_detail": "충남천안시", "floor": "1층", "type": "성인 / 인샵", "area_total": 253.1, "area_sales": 205.2, "open_date": "2021-09-10", "contract_end": "2026-12-31", "rank": 199, "monthly_avg": 0.0, "daily_sales": 29372.0, "achievement": 97.9, "growth": -41.7}, {"no": 134, "id": "MCE065", "name": "이마트 평촌", "manager": "엄금란", "category": "할인마트", "subcategory": "이마트", "region": "경기", "region_detail": "경기군포시", "floor": "B1층", "type": "성인 / 제외", "area_total": 115.9, "area_sales": 107, "open_date": "2021-09-10", "contract_end": "2026-12-31", "rank": 171, "monthly_avg": 0.0, "daily_sales": 47085.0, "achievement": 156.9, "growth": -12.2}, {"no": 135, "id": "MBI009", "name": "세이 탄방", "manager": "이용주", "category": "백화점", "subcategory": "세이", "region": "대전", "region_detail": "대전서구", "floor": "복층(2층)", "type": "복합 / 인샵", "area_total": 305.1, "area_sales": 193.3, "open_date": "2021-09-16", "contract_end": "2026-09-15", "rank": 99, "monthly_avg": 0.0, "daily_sales": 44098.0, "achievement": 105.0, "growth": -20.6}, {"no": 136, "id": "MBK013", "name": "상주", "manager": "황민아", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경북", "region_detail": "경북상주시", "floor": "1층", "type": "복합 / 인샵", "area_total": 258.4, "area_sales": 149.2, "open_date": "2021-10-01", "contract_end": "2028-09-30", "rank": 185, "monthly_avg": 0.0, "daily_sales": 42274.0, "achievement": 124.3, "growth": -4.2}, {"no": 137, "id": "MBE068", "name": "광명어반브릭스", "manager": "조민욱", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기 광명시", "floor": "1층", "type": "복합 / 인샵", "area_total": 247.5, "area_sales": 107.5, "open_date": "2021-11-26", "contract_end": "2026-11-26", "rank": 294, "monthly_avg": 0.0, "daily_sales": 12544.0, "achievement": 104.5, "growth": -52.2}, {"no": 138, "id": "MBH011", "name": "내포 신도시", "manager": "엄초희", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충남", "region_detail": "충남 홍성군", "floor": "1층", "type": "복합 / 인샵", "area_total": 244.8, "area_sales": 140.2, "open_date": "2021-12-03", "contract_end": "2026-10-19", "rank": 61, "monthly_avg": 0.0, "daily_sales": 51446.0, "achievement": 95.3, "growth": -53.5}, {"no": 139, "id": "MBG011", "name": "충북 혁신도시", "manager": "엄초희", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충북", "region_detail": "충북음성군", "floor": "1층", "type": "복합 / 특화", "area_total": 251.1, "area_sales": 172, "open_date": "2021-12-17", "contract_end": "2031-12-16", "rank": 17, "monthly_avg": 0.0, "daily_sales": 71503.0, "achievement": 111.7, "growth": -30.9}, {"no": 140, "id": "MBN010", "name": "익산 영등", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "전북", "region_detail": "전북익산시", "floor": "복층(3층)", "type": "복합 / 특화", "area_total": 471.6, "area_sales": 287.6, "open_date": "2021-12-22", "contract_end": "2029-12-21", "rank": 25, "monthly_avg": 0.0, "daily_sales": 61459.0, "achievement": 93.1, "growth": -40.3}, {"no": 141, "id": "MCG007", "name": "이마트 세종", "manager": "이용주", "category": "할인마트", "subcategory": "이마트", "region": "충남", "region_detail": "충남세종시", "floor": "2층", "type": "성인 / 인샵", "area_total": 89.6, "area_sales": 73.5, "open_date": "2021-12-23", "contract_end": "2026-12-31", "rank": 192, "monthly_avg": 0.0, "daily_sales": 26314.0, "achievement": 109.6, "growth": -8.4}, {"no": 142, "id": "MBE069", "name": "판교역", "manager": "조남오", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기성남시", "floor": "1층", "type": "복합 / 특화", "area_total": 310.3, "area_sales": 160.8, "open_date": "2022-01-07", "contract_end": "2028-07-13", "rank": 4, "monthly_avg": 0.0, "daily_sales": 107643.0, "achievement": 145.5, "growth": -27.8}, {"no": 143, "id": "MBH012", "name": "천안 불당", "manager": "엄초희", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충남", "region_detail": "충남천안시", "floor": "1층", "type": "복합 / 특화", "area_total": 219.5, "area_sales": 132.3, "open_date": "2022-01-07", "contract_end": "2027-01-06", "rank": 60, "monthly_avg": 0.0, "daily_sales": 54014.0, "achievement": 93.1, "growth": -48.8}, {"no": 144, "id": "MBJ021", "name": "이마트 성서", "manager": "황민아", "category": "할인마트", "subcategory": "이마트", "region": "대구", "region_detail": "대구달서구", "floor": "3층", "type": "성인 / 인샵", "area_total": 90.4, "area_sales": 80.8, "open_date": "2022-01-14", "contract_end": "2028-03-31", "rank": 244, "monthly_avg": 0.0, "daily_sales": 30791.0, "achievement": 154.0, "growth": 4.2}, {"no": 145, "id": "MBF007", "name": "홈플) 춘천", "manager": "정동길", "category": "할인마트", "subcategory": "홈플러스", "region": "강원", "region_detail": "강원춘천시", "floor": "B1층", "type": "성인 / 인샵", "area_total": 154.8, "area_sales": 124.2, "open_date": "2022-01-20", "contract_end": "2026-08-31 ", "rank": 304, "monthly_avg": 0.0, "daily_sales": 9174.0, "achievement": 91.7, "growth": -39.3}, {"no": 146, "id": "MBL024", "name": "북울산", "manager": "이용수", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "울산", "region_detail": "울산북구", "floor": "복층(2층)", "type": "복합 / 특화", "area_total": 522.6, "area_sales": 349, "open_date": "2022-01-21", "contract_end": "2028-10-31", "rank": 38, "monthly_avg": 0.0, "daily_sales": 48967.0, "achievement": 87.4, "growth": -18.5}, {"no": 147, "id": "MCA039", "name": "롯마) 중계", "manager": "정동길", "category": "할인마트", "subcategory": "롯데마트", "region": "서울", "region_detail": "서울노원구", "floor": "2층", "type": "성인 / 인샵", "area_total": 266.4, "area_sales": 198.1, "open_date": "2022-01-27", "contract_end": "2026-12-31", "rank": 29, "monthly_avg": 0.0, "daily_sales": 62922.0, "achievement": 125.8, "growth": -18.8}, {"no": 148, "id": "MBC014", "name": "홈플) 인천청라", "manager": "공석", "category": "할인마트", "subcategory": "홈플러스", "region": "인천", "region_detail": "인천서구", "floor": "B1층", "type": "복합 / 특화", "area_total": 380.4, "area_sales": 283.5, "open_date": "2022-02-17", "contract_end": "2026-08-31 ", "rank": 23, "monthly_avg": 0.0, "daily_sales": 78103.0, "achievement": 130.2, "growth": -45.0}, {"no": 149, "id": "MBN015", "name": "이마트 익산", "manager": "김아경", "category": "할인마트", "subcategory": "이마트", "region": "전북", "region_detail": "전북익산시", "floor": "2층", "type": "성인 / 인샵", "area_total": 85.7, "area_sales": 72.4, "open_date": "2022-02-24", "contract_end": "2028-03-31", "rank": 228, "monthly_avg": 0.0, "daily_sales": 19071.0, "achievement": 86.7, "growth": 12.4}, {"no": 150, "id": "MBG012", "name": "제천 장락", "manager": "엄초희", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충북", "region_detail": "충북제천시", "floor": "복층(2층)", "type": "복합 / 특화", "area_total": 394.8, "area_sales": 277, "open_date": "2022-03-04", "contract_end": "2029-03-03", "rank": 92, "monthly_avg": 0.0, "daily_sales": 44514.0, "achievement": 89.0, "growth": -36.2}, {"no": 151, "id": "MBH013", "name": "논산", "manager": "이용주", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충남", "region_detail": "충남논산시", "floor": "1층", "type": "복합 / 인샵", "area_total": 190, "area_sales": 120.2, "open_date": "2022-03-04", "contract_end": "2029-03-03", "rank": 153, "monthly_avg": 0.0, "daily_sales": 42732.0, "achievement": 125.7, "growth": -16.7}, {"no": 152, "id": "MCM028", "name": "애플아울렛", "manager": "이용수", "category": "쇼핑몰", "subcategory": "기타(쇼핑몰)", "region": "부산", "region_detail": "부산사상구", "floor": "2층", "type": "성인 / 특화", "area_total": 203.4, "area_sales": 182.4, "open_date": "2022-03-24", "contract_end": "2027-03-23", "rank": 16, "monthly_avg": 0.0, "daily_sales": 67106.0, "achievement": 108.2, "growth": -3.5}, {"no": 153, "id": "MBH014", "name": "보령", "manager": "엄초희", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충남", "region_detail": "충남보령시", "floor": "1층", "type": "복합 / 인샵", "area_total": 200.8, "area_sales": 128.4, "open_date": "2022-03-25", "contract_end": "2032-03-24", "rank": 145, "monthly_avg": 0.0, "daily_sales": 31462.0, "achievement": 87.4, "growth": -55.8}, {"no": 154, "id": "MBA036", "name": "홈플) 월드컵", "manager": "엄금란", "category": "할인마트", "subcategory": "홈플러스", "region": "서울", "region_detail": "서울마포구", "floor": "2층", "type": "성인 / 인샵", "area_total": 301.5, "area_sales": 262.5, "open_date": "2022-03-31", "contract_end": "2026-05-31 ", "rank": 53, "monthly_avg": 0.0, "daily_sales": 55751.0, "achievement": 92.9, "growth": -32.7}, {"no": 155, "id": "MCM029", "name": "NC 덕천", "manager": "이용수", "category": "쇼핑몰", "subcategory": "이랜드", "region": "부산", "region_detail": "부산북구", "floor": "2층", "type": "성인 / 인샵", "area_total": 129.5, "area_sales": 107.6, "open_date": "2022-04-01", "contract_end": "2027-02-28", "rank": 65, "monthly_avg": 0.0, "daily_sales": 57128.0, "achievement": 114.3, "growth": 12.0}, {"no": 156, "id": "MCE069", "name": "NC 수원터미널", "manager": "조남오", "category": "쇼핑몰", "subcategory": "이랜드", "region": "경기", "region_detail": "경기수원시", "floor": "4층", "type": "성인 / 인샵", "area_total": 209.9, "area_sales": 178.1, "open_date": "2022-04-06", "contract_end": "2027-02-28", "rank": 128, "monthly_avg": 0.0, "daily_sales": 28177.0, "achievement": 74.2, "growth": -33.5}, {"no": 157, "id": "MCJ023", "name": "대백프라자", "manager": "황민아", "category": "백화점아울렛", "subcategory": "대구백화점", "region": "대구", "region_detail": "대구중구", "floor": "6층", "type": "성인 / 특화", "area_total": 191.4, "area_sales": 141.8, "open_date": "2022-04-29", "contract_end": "2026-07-31", "rank": 300, "monthly_avg": 0.0, "daily_sales": 11362.0, "achievement": 94.7, "growth": -31.3}, {"no": 158, "id": "MBG013", "name": "충주 교현", "manager": "엄초희", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충북", "region_detail": "충북충주시", "floor": "복층(2층)", "type": "복합 / 특화", "area_total": 300.8, "area_sales": 202, "open_date": "2022-05-18", "contract_end": "2027-05-17", "rank": 193, "monthly_avg": 0.0, "daily_sales": 25432.0, "achievement": 79.5, "growth": -52.6}, {"no": 159, "id": "MCE103", "name": "AK 수원", "manager": "조남오", "category": "백화점", "subcategory": "AK", "region": "경기", "region_detail": "경기수원시", "floor": "B1층", "type": "성인 / 인샵", "area_total": 113.6, "area_sales": 85, "open_date": "2022-05-25", "contract_end": "2026-07-31", "rank": 30, "monthly_avg": 0.0, "daily_sales": 52845.0, "achievement": 97.9, "growth": -32.1}, {"no": 160, "id": "MBO007", "name": "여수 둔덕", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "전남", "region_detail": "전남여수시", "floor": "1층", "type": "복합 / 특화", "area_total": 500.6, "area_sales": 267.8, "open_date": "2022-05-31", "contract_end": "2027-03-30", "rank": 26, "monthly_avg": 0.0, "daily_sales": 60132.0, "achievement": 100.2, "growth": -44.7}, {"no": 161, "id": "MBA038", "name": "왕십리역", "manager": "엄금란", "category": "쇼핑몰", "subcategory": "기타(쇼핑몰)", "region": "서울", "region_detail": "서울성동구", "floor": "3층", "type": "성인 / 특화", "area_total": 271.6, "area_sales": 234, "open_date": "2022-06-10", "contract_end": "2027-05-01", "rank": 3, "monthly_avg": 0.0, "daily_sales": 107317.0, "achievement": 107.3, "growth": -36.8}, {"no": 162, "id": "MCL030", "name": "이마트 통영", "manager": "이용주", "category": "할인마트", "subcategory": "이마트", "region": "경남", "region_detail": "경남통영시", "floor": "1층", "type": "성인 / 인샵", "area_total": 98.2, "area_sales": 93.4, "open_date": "2022-06-10", "contract_end": "2026-12-31", "rank": 127, "monthly_avg": 0.0, "daily_sales": 37165.0, "achievement": 103.2, "growth": -13.9}, {"no": 163, "id": "MBE074", "name": "수원 망포", "manager": "조남오", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기수원시", "floor": "복층", "type": "복합 / 특화", "area_total": 311.9, "area_sales": 212.1, "open_date": "2022-06-17", "contract_end": "2027-06-16", "rank": 131, "monthly_avg": 0.0, "daily_sales": 43190.0, "achievement": 108.0, "growth": -50.7}, {"no": 164, "id": "MBH015", "name": "천안 구성", "manager": "엄초희", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충남", "region_detail": "충남천안시", "floor": "1층", "type": "복합 / 특화", "area_total": 281.9, "area_sales": 187.1, "open_date": "2022-06-24", "contract_end": "2029-06-23", "rank": 24, "monthly_avg": 0.0, "daily_sales": 61592.0, "achievement": 99.3, "growth": -21.7}, {"no": 165, "id": "MBE076", "name": "AK 금정", "manager": "엄금란", "category": "백화점", "subcategory": "AK", "region": "경기", "region_detail": "경기군포시", "floor": "2층", "type": "성인 / 인샵", "area_total": 308.4, "area_sales": 240.9, "open_date": "2022-07-13", "contract_end": "2027-07-31", "rank": 175, "monthly_avg": 0.0, "daily_sales": 36726.0, "achievement": 131.2, "growth": -26.6}, {"no": 166, "id": "MBE078", "name": "용인 동백", "manager": "조남오", "category": "쇼핑몰", "subcategory": "기타(쇼핑몰)", "region": "경기", "region_detail": "경기용인시", "floor": "1층", "type": "복합 / 특화", "area_total": 197.4, "area_sales": 90.2, "open_date": "2022-07-14", "contract_end": "2027-07-14", "rank": 87, "monthly_avg": 0.0, "daily_sales": 42095.0, "achievement": 105.2, "growth": -45.1}, {"no": 167, "id": "MBE079", "name": "일산 원마운트", "manager": "공석", "category": "쇼핑몰", "subcategory": "기타(쇼핑몰)", "region": "경기", "region_detail": "경기고양시", "floor": "1층", "type": "복합 / 특화", "area_total": 256.9, "area_sales": 175.4, "open_date": "2022-07-29", "contract_end": "2027-07-28", "rank": 75, "monthly_avg": 0.0, "daily_sales": 33748.0, "achievement": 84.4, "growth": -53.7}, {"no": 168, "id": "MBN012", "name": "동전주", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "전북", "region_detail": "전북전주시", "floor": "복층(2층)", "type": "복합 / 특화", "area_total": 299.5, "area_sales": 180.9, "open_date": "2022-07-29", "contract_end": "2029-07-28", "rank": 148, "monthly_avg": 0.0, "daily_sales": 29150.0, "achievement": 81.0, "growth": -51.0}, {"no": 169, "id": "MBA039", "name": "수유 에피소드", "manager": "정동길", "category": "쇼핑몰", "subcategory": "기타(쇼핑몰)", "region": "서울", "region_detail": "서울강북구", "floor": "2층", "type": "복합 / 특화", "area_total": 299.5, "area_sales": 134, "open_date": "2022-08-05", "contract_end": "2027-08-04", "rank": 137, "monthly_avg": 0.0, "daily_sales": 40836.0, "achievement": 113.4, "growth": -30.5}, {"no": 170, "id": "MBL026", "name": "탑마트 서진주", "manager": "이용주", "category": "할인마트", "subcategory": "기타(할인마트)", "region": "경남", "region_detail": "경남진주시", "floor": "2층", "type": "성인 / 특화", "area_total": 279.8, "area_sales": 192.7, "open_date": "2022-08-05", "contract_end": "2027-08-25", "rank": 130, "monthly_avg": 0.0, "daily_sales": 37931.0, "achievement": 111.6, "growth": -24.8}, {"no": 171, "id": "MBN011", "name": "남원", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "전북", "region_detail": "전북남원시", "floor": "1층", "type": "복합 / 특화", "area_total": 250.0, "area_sales": 156.2, "open_date": "2022-08-12", "contract_end": "2029-08-11", "rank": 212, "monthly_avg": 0.0, "daily_sales": 31485.0, "achievement": 105.0, "growth": -34.5}, {"no": 172, "id": "MCK018", "name": "이마트 상주", "manager": "황민아", "category": "할인마트", "subcategory": "이마트", "region": "경북", "region_detail": "경북상주시", "floor": "1층", "type": "성인 / 인샵", "area_total": 137.4, "area_sales": 117.0, "open_date": "2022-09-08", "contract_end": "2026-12-31", "rank": 240, "monthly_avg": 0.0, "daily_sales": 21256.0, "achievement": 96.6, "growth": -17.6}, {"no": 173, "id": "MCB031", "name": "현아) 가든", "manager": "정동길", "category": "백화점아울렛", "subcategory": "현대아울렛", "region": "서울", "region_detail": "서울송파구", "floor": "2층", "type": "성인 / 특화", "area_total": 183.0, "area_sales": 140.4, "open_date": "2022-09-16", "contract_end": "2026-07-31", "rank": 181, "monthly_avg": 0.0, "daily_sales": 20103.0, "achievement": 67.0, "growth": -41.8}, {"no": 174, "id": "MCA046", "name": "현대 신촌", "manager": "엄금란", "category": "백화점", "subcategory": "현대", "region": "서울", "region_detail": "서울서대문구", "floor": "6층", "type": "복합 / 특화", "area_total": 231.8, "area_sales": 184.1, "open_date": "2022-09-16", "contract_end": "2026-04-30", "rank": 159, "monthly_avg": 0.0, "daily_sales": 25307.0, "achievement": 143.8, "growth": -48.2}, {"no": 175, "id": "MBN013", "name": "김제", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "전북", "region_detail": "전북김제시", "floor": "1층", "type": "복합 / 특화", "area_total": 299.9, "area_sales": 186.2, "open_date": "2022-10-07", "contract_end": "2029-10-06", "rank": 195, "monthly_avg": 0.0, "daily_sales": 39434.0, "achievement": 123.2, "growth": 20.2}, {"no": 176, "id": "MBD018", "name": "롯아) 구리", "manager": "조민욱", "category": "백화점아울렛", "subcategory": "롯데아울렛", "region": "경기", "region_detail": "경기구리시", "floor": "3층", "type": "성인 / 특화", "area_total": 254.7, "area_sales": 199, "open_date": "2022-10-07", "contract_end": "2026-12-31", "rank": 191, "monthly_avg": 0.0, "daily_sales": 21468.0, "achievement": 76.7, "growth": -16.0}, {"no": 177, "id": "MCN013", "name": "이마트 전주", "manager": "김아경", "category": "할인마트", "subcategory": "이마트", "region": "전북", "region_detail": "전북전주시", "floor": "2층", "type": "성인 / 인샵", "area_total": 80.5, "area_sales": 76.5, "open_date": "2022-10-07", "contract_end": "2026-12-31", "rank": 201, "monthly_avg": 0.0, "daily_sales": 32375.0, "achievement": 107.9, "growth": -29.4}, {"no": 178, "id": "MCC023", "name": "NC 인천", "manager": "공석", "category": "쇼핑몰", "subcategory": "이랜드", "region": "인천", "region_detail": "인천시남동구", "floor": "8층", "type": "성인 / 특화", "area_total": 191.2, "area_sales": 132.1, "open_date": "2022-10-14", "contract_end": "2027-02-28", "rank": 133, "monthly_avg": 0.0, "daily_sales": 25649.0, "achievement": 71.2, "growth": -46.8}, {"no": 179, "id": "MCL032", "name": "이마트 김해", "manager": "이용주", "category": "할인마트", "subcategory": "이마트", "region": "경남", "region_detail": "경남김해시", "floor": "2층", "type": "성인 / 인샵", "area_total": 174.7, "area_sales": 162.6, "open_date": "2022-10-14", "contract_end": "2026-12-31", "rank": 107, "monthly_avg": 0.0, "daily_sales": 30994.0, "achievement": 91.2, "growth": -19.4}, {"no": 180, "id": "MBM020", "name": "부산 사하", "manager": "이용수", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "부산", "region_detail": "부산사하구", "floor": "1층", "type": "복합 / 특화", "area_total": 233.7, "area_sales": 130, "open_date": "2022-10-28", "contract_end": "2029-10-27", "rank": 293, "monthly_avg": 0.0, "daily_sales": 16563.0, "achievement": 138.0, "growth": -30.2}, {"no": 181, "id": "MCQ004", "name": "이마트 신제주", "manager": "김아경", "category": "할인마트", "subcategory": "이마트", "region": "제주", "region_detail": "제주제주시", "floor": "1층", "type": "성인 / 인샵", "area_total": 101.8, "area_sales": 93.1, "open_date": "2022-10-28", "contract_end": "2026-12-31", "rank": 40, "monthly_avg": 0.0, "daily_sales": 75838.0, "achievement": 145.8, "growth": 2.3}, {"no": 182, "id": "MBA040", "name": "이대서울병원", "manager": "엄금란", "category": "쇼핑몰", "subcategory": "기타(쇼핑몰)", "region": "서울", "region_detail": "서울강서구", "floor": "B1층", "type": "복합 / 제외", "area_total": 93.0, "area_sales": 55.9, "open_date": "2022-11-07", "contract_end": "2029-03-31", "rank": 296, "monthly_avg": 0.0, "daily_sales": 32023.0, "achievement": 266.9, "growth": -21.9}, {"no": 183, "id": "MCM034", "name": "이마트 금정", "manager": "이용수", "category": "할인마트", "subcategory": "이마트", "region": "부산", "region_detail": "부산금정구", "floor": "2층", "type": "성인 / 인샵", "area_total": 139.7, "area_sales": 130.4, "open_date": "2022-11-10", "contract_end": "2026-12-31", "rank": 187, "monthly_avg": 0.0, "daily_sales": 21785.0, "achievement": 77.8, "growth": -44.4}, {"no": 184, "id": "MBE084", "name": "화성봉담중앙", "manager": "조남오", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기화성시", "floor": "1층", "type": "복합 / 특화", "area_total": 301.4, "area_sales": 192.2, "open_date": "2022-11-10", "contract_end": "2027-11-17", "rank": 66, "monthly_avg": 0.0, "daily_sales": 64154.0, "achievement": 145.8, "growth": -42.7}, {"no": 185, "id": "MBE083", "name": "홈플) 동수원", "manager": "조남오", "category": "할인마트", "subcategory": "홈플러스", "region": "경기", "region_detail": "경기수원시", "floor": "1층", "type": "성인 / 인샵", "area_total": 180.1, "area_sales": 137.9, "open_date": "2022-11-11", "contract_end": "2026-08-31 ", "rank": 281, "monthly_avg": 0.0, "daily_sales": 12828.0, "achievement": 64.1, "growth": -51.4}, {"no": 186, "id": "MBH016", "name": "아산 탕정", "manager": "엄초희", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충남", "region_detail": "충남아산시", "floor": "복층(2층)", "type": "복합 / 특화", "area_total": 475.8, "area_sales": 296, "open_date": "2022-11-11", "contract_end": "2027-11-10", "rank": 106, "monthly_avg": 0.0, "daily_sales": 39799.0, "achievement": 94.8, "growth": -41.2}, {"no": 187, "id": "MCC025", "name": "이마트 동인천", "manager": "공석", "category": "할인마트", "subcategory": "이마트", "region": "인천", "region_detail": "인천중구", "floor": "2층", "type": "성인 / 인샵", "area_total": 93.1, "area_sales": 81.3, "open_date": "2022-12-08", "contract_end": "2026-12-31", "rank": 286, "monthly_avg": 0.0, "daily_sales": 12483.0, "achievement": 89.2, "growth": -33.0}, {"no": 188, "id": "MCC026", "name": "롯마) 부평", "manager": "공석", "category": "할인마트", "subcategory": "롯데마트", "region": "인천", "region_detail": "인천시부평구", "floor": "1층", "type": "복합 / 특화", "area_total": 335.1, "area_sales": 220.8, "open_date": "2022-12-08", "contract_end": "2026-12-31", "rank": 143, "monthly_avg": 0.0, "daily_sales": 51157.0, "achievement": 142.1, "growth": -42.9}, {"no": 189, "id": "MBL027", "name": "김해 주촌", "manager": "이용주", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경남", "region_detail": "경남김해시", "floor": "복층(2층)", "type": "복합 / 특화", "area_total": 413.6, "area_sales": 275, "open_date": "2022-12-16", "contract_end": "2027-12-15", "rank": 165, "monthly_avg": 0.0, "daily_sales": 13748.0, "achievement": 43.0, "growth": -77.0}, {"no": 190, "id": "MBA041", "name": "아이파크 고척", "manager": "엄금란", "category": "쇼핑몰", "subcategory": "기타(쇼핑몰)", "region": "서울", "region_detail": "서울구로구", "floor": "2층", "type": "복합 / 특화", "area_total": 304.2, "area_sales": 212.5, "open_date": "2022-12-22", "contract_end": "2027-12-21", "rank": 132, "monthly_avg": 0.0, "daily_sales": 49397.0, "achievement": 154.4, "growth": -21.8}, {"no": 191, "id": "MBG014", "name": "청주 내덕", "manager": "엄초희", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충북", "region_detail": "충북청주시", "floor": "1층", "type": "복합 / 특화", "area_total": 301.7, "area_sales": 187.8, "open_date": "2022-12-23", "contract_end": "2029-12-22", "rank": 68, "monthly_avg": 0.0, "daily_sales": 46985.0, "achievement": 83.9, "growth": -43.3}, {"no": 192, "id": "MCE079", "name": "이마트 산본", "manager": "엄금란", "category": "할인마트", "subcategory": "이마트", "region": "경기", "region_detail": "경기군포시", "floor": "3층", "type": "성인 / 인샵", "area_total": 100.5, "area_sales": 84.2, "open_date": "2023-01-06", "contract_end": "2026-12-31", "rank": 230, "monthly_avg": 0.0, "daily_sales": 23734.0, "achievement": 107.9, "growth": -48.2}, {"no": 193, "id": "MCE080", "name": "이마트 수지", "manager": "조남오", "category": "할인마트", "subcategory": "이마트", "region": "경기", "region_detail": "경기용인시", "floor": "2층", "type": "성인 / 인샵", "area_total": 149.8, "area_sales": 130.6, "open_date": "2023-01-13", "contract_end": "2026-12-31", "rank": 238, "monthly_avg": 0.0, "daily_sales": 31421.0, "achievement": 142.8, "growth": -42.6}, {"no": 194, "id": "MCL034", "name": "이마트 울산", "manager": "이용수", "category": "할인마트", "subcategory": "이마트", "region": "울산", "region_detail": "울산남구", "floor": "3층", "type": "성인 / 인샵", "area_total": 119.4, "area_sales": 103.4, "open_date": "2023-01-13", "contract_end": "2026-12-31", "rank": 173, "monthly_avg": 0.0, "daily_sales": 16066.0, "achievement": 53.6, "growth": -46.4}, {"no": 195, "id": "MBK014", "name": "구미G7", "manager": "황민아", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경북", "region_detail": "경북구미시", "floor": "B1층", "type": "성인 / 특화", "area_total": 289.6, "area_sales": 265, "open_date": "2023-01-19", "contract_end": "2028-01-19", "rank": 169, "monthly_avg": 0.0, "daily_sales": 32695.0, "achievement": 102.2, "growth": -20.7}, {"no": 196, "id": "MBD019", "name": "양주 고읍", "manager": "조민욱", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기양주시", "floor": "복층(3층)", "type": "복합 / 특화", "area_total": 417.2, "area_sales": 210.2, "open_date": "2023-01-19", "contract_end": "2033-01-18", "rank": 50, "monthly_avg": 0.0, "daily_sales": 73606.0, "achievement": 136.3, "growth": -39.5}, {"no": 197, "id": "MBE085", "name": "일산 차병원", "manager": "공석", "category": "쇼핑몰", "subcategory": "기타(쇼핑몰)", "region": "경기", "region_detail": "경기고양시", "floor": "2층", "type": "복합 / 제외", "area_total": 55.4, "area_sales": 33.8, "open_date": "2023-01-30", "contract_end": "2026-06-15", "rank": 303, "monthly_avg": 0.0, "daily_sales": 15528.0, "achievement": 194.1, "growth": -41.6}, {"no": 198, "id": "MCE083", "name": "롯마) 의왕", "manager": "조민욱", "category": "할인마트", "subcategory": "롯데마트", "region": "경기", "region_detail": "경기의왕시", "floor": "2층", "type": "복합 / 인샵", "area_total": 298.4, "area_sales": 203.6, "open_date": "2023-02-24", "contract_end": "2026-12-31", "rank": 83, "monthly_avg": 0.0, "daily_sales": 57156.0, "achievement": 119.1, "growth": -18.9}, {"no": 199, "id": "MCE085", "name": "이마트 김포한강", "manager": "공석", "category": "할인마트", "subcategory": "이마트", "region": "경기", "region_detail": "경기김포시", "floor": "2층", "type": "성인 / 인샵", "area_total": 99.2, "area_sales": 89.8, "open_date": "2023-03-02", "contract_end": "2026-12-31", "rank": 62, "monthly_avg": 0.0, "daily_sales": 41713.0, "achievement": 99.3, "growth": -46.8}, {"no": 200, "id": "MCD018", "name": "이마트 별내", "manager": "조민욱", "category": "할인마트", "subcategory": "이마트", "region": "경기", "region_detail": "경기남양주시", "floor": "1층", "type": "성인 / 인샵", "area_total": 80.5, "area_sales": 71.0, "open_date": "2023-03-09", "contract_end": "2026-12-31", "rank": 158, "monthly_avg": 0.0, "daily_sales": 45153.0, "achievement": 150.5, "growth": 41.0}, {"no": 201, "id": "MBL028", "name": "사천", "manager": "이용주", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경남", "region_detail": "경남사천시", "floor": "복층(3층)", "type": "복합 / 특화", "area_total": 301.5, "area_sales": 198, "open_date": "2023-03-10", "contract_end": "2030-03-09", "rank": 104, "monthly_avg": 0.0, "daily_sales": 42621.0, "achievement": 96.9, "growth": -23.7}, {"no": 202, "id": "MCE087", "name": "이마트 광교", "manager": "조남오", "category": "할인마트", "subcategory": "이마트", "region": "경기", "region_detail": "경기수원시", "floor": "2층", "type": "성인 / 인샵", "area_total": 165.5, "area_sales": 156.0, "open_date": "2023-03-16", "contract_end": "2026-12-31", "rank": 272, "monthly_avg": 0.0, "daily_sales": 19410.0, "achievement": 121.3, "growth": -25.9}, {"no": 203, "id": "MCE086", "name": "이마트 하남", "manager": "조민욱", "category": "할인마트", "subcategory": "이마트", "region": "경기", "region_detail": "경기하남시", "floor": "3층", "type": "성인 / 인샵", "area_total": 87.4, "area_sales": 81.7, "open_date": "2023-03-16", "contract_end": "2026-12-31", "rank": 287, "monthly_avg": 0.0, "daily_sales": 20022.0, "achievement": 100.1, "growth": -38.1}, {"no": 204, "id": "MCD020", "name": "이마트 다산", "manager": "조민욱", "category": "할인마트", "subcategory": "이마트", "region": "경기", "region_detail": "경기남양주시", "floor": "B1층", "type": "성인 / 인샵", "area_total": 98.6, "area_sales": 92.2, "open_date": "2023-03-23", "contract_end": "2026-12-31", "rank": 257, "monthly_avg": 0.0, "daily_sales": 21816.0, "achievement": 109.1, "growth": -44.4}, {"no": 205, "id": "MCC028", "name": "이마트 연수", "manager": "공석", "category": "할인마트", "subcategory": "이마트", "region": "인천", "region_detail": "인천연수구", "floor": "2층", "type": "성인 / 특화", "area_total": 225.2, "area_sales": 166.5, "open_date": "2023-03-30", "contract_end": "2026-12-31", "rank": 115, "monthly_avg": 0.0, "daily_sales": 36958.0, "achievement": 115.5, "growth": -23.1}, {"no": 206, "id": "MCD022", "name": "롯마) 장암", "manager": "조민욱", "category": "할인마트", "subcategory": "롯데마트", "region": "경기", "region_detail": "경기의정부시", "floor": "2층", "type": "복합 / 특화", "area_total": 206.3, "area_sales": 130.2, "open_date": "2023-04-14", "contract_end": "2026-12-31", "rank": 280, "monthly_avg": 0.0, "daily_sales": 25297.0, "achievement": 126.5, "growth": -9.6}, {"no": 207, "id": "MBE087", "name": "이천 증포", "manager": "조남오", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기이천시", "floor": "1층", "type": "복합 / 특화", "area_total": 300.1, "area_sales": 220.9, "open_date": "2023-04-21", "contract_end": "2030-04-20", "rank": 178, "monthly_avg": 0.0, "daily_sales": 33152.0, "achievement": 82.9, "growth": -49.7}, {"no": 208, "id": "MBE088", "name": "홈플) 시화", "manager": "조민욱", "category": "할인마트", "subcategory": "홈플러스", "region": "경기", "region_detail": "경기시흥시", "floor": "2층", "type": "성인 / 특화", "area_total": 238.7, "area_sales": 182.0, "open_date": "2023-04-28", "contract_end": "2026-08-31 ", "rank": 295, "monthly_avg": 0.0, "daily_sales": 13108.0, "achievement": 81.9, "growth": -34.4}, {"no": 209, "id": "MCA049", "name": "이마트 자양", "manager": "엄금란", "category": "할인마트", "subcategory": "이마트", "region": "서울", "region_detail": "서울광진구", "floor": "B1층", "type": "성인 / 인샵", "area_total": 80.2, "area_sales": 75.6, "open_date": "2023-04-28", "contract_end": "2026-12-31", "rank": 202, "monthly_avg": 0.0, "daily_sales": 37060.0, "achievement": 142.5, "growth": -52.2}, {"no": 210, "id": "MCE089", "name": "롯마) 김포한강", "manager": "공석", "category": "할인마트", "subcategory": "롯데마트", "region": "경기", "region_detail": "경기김포시", "floor": "2층", "type": "성인 / 특화", "area_total": 244.7, "area_sales": 212.0, "open_date": "2023-05-04", "contract_end": "2026-12-31", "rank": 235, "monthly_avg": 0.0, "daily_sales": 19370.0, "achievement": 69.2, "growth": -62.9}, {"no": 211, "id": "MCE090", "name": "이마트 안성", "manager": "조남오", "category": "할인마트", "subcategory": "이마트", "region": "경기", "region_detail": "경기안성시", "floor": "2층", "type": "성인 / 인샵", "area_total": 131.3, "area_sales": 119.7, "open_date": "2023-05-04", "contract_end": "2026-12-31", "rank": 174, "monthly_avg": 0.0, "daily_sales": 34042.0, "achievement": 100.1, "growth": 0.5}, {"no": 212, "id": "MBM021", "name": "롯데 동래", "manager": "이용수", "category": "백화점", "subcategory": "롯데쇼핑", "region": "부산", "region_detail": "부산동래구", "floor": "1층", "type": "복합 / 특화", "area_total": 185.7, "area_sales": 133, "open_date": "2023-05-10", "contract_end": "2027-01-31", "rank": 150, "monthly_avg": 0.0, "daily_sales": 47150.0, "achievement": 124.1, "growth": -15.8}, {"no": 213, "id": "MCN016", "name": "롯마) 전주", "manager": "김아경", "category": "할인마트", "subcategory": "롯데마트", "region": "전북", "region_detail": "전북전주시", "floor": "1층", "type": "복합 / 인샵", "area_total": 280.5, "area_sales": 238.3, "open_date": "2023-05-19", "contract_end": "2026-12-31", "rank": 255, "monthly_avg": 0.0, "daily_sales": 21036.0, "achievement": 87.6, "growth": -23.2}, {"no": 214, "id": "MCL036", "name": "이마트 진주", "manager": "이용주", "category": "할인마트", "subcategory": "이마트", "region": "경남", "region_detail": "경남진주시", "floor": "1층", "type": "성인 / 인샵", "area_total": 97.1, "area_sales": 88.7, "open_date": "2023-05-25", "contract_end": "2026-12-31", "rank": 226, "monthly_avg": 0.0, "daily_sales": 32356.0, "achievement": 161.8, "growth": 10.5}, {"no": 215, "id": "MCJ028", "name": "이마트 만촌", "manager": "황민아", "category": "할인마트", "subcategory": "이마트", "region": "대구", "region_detail": "대구수성구", "floor": "1층", "type": "성인 / 인샵", "area_total": 110.4, "area_sales": 99.5, "open_date": "2023-05-25", "contract_end": "2026-12-31", "rank": 152, "monthly_avg": 0.0, "daily_sales": 40640.0, "achievement": 127.0, "growth": -30.1}, {"no": 216, "id": "MCO010", "name": "이마트 목포", "manager": "김아경", "category": "할인마트", "subcategory": "이마트", "region": "전남", "region_detail": "전남목포시", "floor": "2층", "type": "성인 / 인샵", "area_total": 87.9, "area_sales": 80.0, "open_date": "2023-06-01", "contract_end": "2026-12-31", "rank": 189, "monthly_avg": 0.0, "daily_sales": 34290.0, "achievement": 114.3, "growth": 9.7}, {"no": 217, "id": "MCD025", "name": "롯마) 마석", "manager": "조민욱", "category": "할인마트", "subcategory": "롯데마트", "region": "경기", "region_detail": "경기남양주시", "floor": "1층", "type": "성인 / 특화", "area_total": 197.1, "area_sales": 167.4, "open_date": "2023-06-09", "contract_end": "2026-12-31", "rank": 263, "monthly_avg": 0.0, "daily_sales": 23184.0, "achievement": 105.4, "growth": -52.4}, {"no": 218, "id": "MCH029", "name": "롯마) 홍성", "manager": "엄초희", "category": "할인마트", "subcategory": "롯데마트", "region": "충남", "region_detail": "충남홍성군", "floor": "2층", "type": "성인 / 특화", "area_total": 135.8, "area_sales": 82.6, "open_date": "2023-06-16", "contract_end": "2026-12-31", "rank": 288, "monthly_avg": 0.0, "daily_sales": 18374.0, "achievement": 114.8, "growth": -1.2}, {"no": 219, "id": "MCG013", "name": "롯마) 상당", "manager": "엄초희", "category": "할인마트", "subcategory": "롯데마트", "region": "충북", "region_detail": "충북청주시", "floor": "B1층", "type": "성인 / 특화", "area_total": 193.1, "area_sales": 150.7, "open_date": "2023-06-16", "contract_end": "2026-12-31", "rank": 168, "monthly_avg": 0.0, "daily_sales": 43729.0, "achievement": 121.5, "growth": -22.2}, {"no": 220, "id": "MCA051", "name": "이마트 수색", "manager": "엄금란", "category": "할인마트", "subcategory": "이마트", "region": "서울", "region_detail": "서울은평구", "floor": "3층", "type": "성인 / 특화", "area_total": 229.7, "area_sales": 134.8, "open_date": "2023-06-22", "contract_end": "2026-12-31", "rank": 284, "monthly_avg": 0.0, "daily_sales": 19373.0, "achievement": 138.4, "growth": -15.0}, {"no": 221, "id": "MCL037", "name": "롯마) 마산", "manager": "이용주", "category": "할인마트", "subcategory": "롯데마트", "region": "경남", "region_detail": "경남창원시", "floor": "1층", "type": "복합 / 특화", "area_total": 273.4, "area_sales": 228.5, "open_date": "2023-06-30", "contract_end": "2026-12-31", "rank": 74, "monthly_avg": 0.0, "daily_sales": 45566.0, "achievement": 113.9, "growth": -35.8}, {"no": 222, "id": "MCK021", "name": "이마트 안동", "manager": "황민아", "category": "할인마트", "subcategory": "이마트", "region": "경북", "region_detail": "경북안동시", "floor": "B1층", "type": "성인 / 인샵", "area_total": 82.7, "area_sales": 71.4, "open_date": "2023-07-13", "contract_end": "2026-12-31", "rank": 231, "monthly_avg": 0.0, "daily_sales": 23421.0, "achievement": 97.6, "growth": -7.9}, {"no": 223, "id": "MBE105", "name": "이마트 오산", "manager": "조남오", "category": "할인마트", "subcategory": "이마트", "region": "경기", "region_detail": "경기오산시", "floor": "3층", "type": "성인 / 인샵", "area_total": 111.9, "area_sales": 96.1, "open_date": "2023-07-13", "contract_end": "2028-03-31", "rank": 252, "monthly_avg": 0.0, "daily_sales": 21089.0, "achievement": 95.9, "growth": -28.9}, {"no": 224, "id": "MCL038", "name": "롯마) 장유", "manager": "이용주", "category": "할인마트", "subcategory": "롯데마트", "region": "경남", "region_detail": "경남김해시", "floor": "2층", "type": "성인 / 특화", "area_total": 358, "area_sales": 320, "open_date": "2023-07-14", "contract_end": "2026-12-31", "rank": 117, "monthly_avg": 0.0, "daily_sales": 42454.0, "achievement": 106.1, "growth": -21.5}, {"no": 225, "id": "MBE089", "name": "시흥 성담스퀘어", "manager": "조민욱", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기시흥시", "floor": "3층", "type": "복합 / 인샵", "area_total": 318.5, "area_sales": 242.4, "open_date": "2023-07-14", "contract_end": "2027-01-06", "rank": 98, "monthly_avg": 0.0, "daily_sales": 52872.0, "achievement": 101.7, "growth": -27.1}, {"no": 226, "id": "MCE094", "name": "이마트 파주운정", "manager": "공석", "category": "할인마트", "subcategory": "이마트", "region": "경기", "region_detail": "경기파주시", "floor": "2층", "type": "성인 / 특화", "area_total": 100.9, "area_sales": 74.7, "open_date": "2023-07-27", "contract_end": "2026-12-31", "rank": 239, "monthly_avg": 0.0, "daily_sales": 25671.0, "achievement": 98.7, "growth": -49.6}, {"no": 227, "id": "MBN014", "name": "정읍", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "전북", "region_detail": "전북정읍시", "floor": "복층(2층)", "type": "복합 / 특화", "area_total": 405.7, "area_sales": 249.6, "open_date": "2023-07-28", "contract_end": "2030-07-27", "rank": 80, "monthly_avg": 0.0, "daily_sales": 39073.0, "achievement": 93.0, "growth": -41.8}, {"no": 228, "id": "MBG015", "name": "충주 지현", "manager": "엄초희", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충북", "region_detail": "충북충주시", "floor": "1층", "type": "복합 / 특화", "area_total": 294.9, "area_sales": 217, "open_date": "2023-08-04", "contract_end": "2030-08-03", "rank": 305, "monthly_avg": 0.0, "daily_sales": 7253.0, "achievement": 90.7, "growth": -60.2}, {"no": 229, "id": "MBM022", "name": "부산 신평", "manager": "이용수", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "부산", "region_detail": "부산사하구", "floor": "1층", "type": "복합 / 특화", "area_total": 301.6, "area_sales": 210, "open_date": "2023-08-25", "contract_end": "2038-08-24", "rank": 142, "monthly_avg": 0.0, "daily_sales": 28528.0, "achievement": 75.1, "growth": -36.6}, {"no": 230, "id": "MBL029", "name": "창원 내서", "manager": "이용주", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경남", "region_detail": "경남창원시", "floor": "1층", "type": "복합 / 특화", "area_total": 299.1, "area_sales": 171, "open_date": "2023-08-25", "contract_end": "2030-08-24", "rank": 111, "monthly_avg": 0.0, "daily_sales": 39603.0, "achievement": 99.0, "growth": -20.4}, {"no": 231, "id": "MBJ018", "name": "대구 현풍", "manager": "황민아", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "대구", "region_detail": "대구달성군", "floor": "1층", "type": "복합 / 특화", "area_total": 301.1, "area_sales": 184, "open_date": "2023-09-01", "contract_end": "2030-08-31", "rank": 55, "monthly_avg": 0.0, "daily_sales": 42992.0, "achievement": 89.6, "growth": -29.7}, {"no": 232, "id": "MCM035", "name": "롯마) 화명", "manager": "이용수", "category": "할인마트", "subcategory": "롯데마트", "region": "부산", "region_detail": "부산북구", "floor": "2층", "type": "성인 / 특화", "area_total": 184.6, "area_sales": 144.6, "open_date": "2023-09-14", "contract_end": "2026-12-31", "rank": 129, "monthly_avg": 0.0, "daily_sales": 47439.0, "achievement": 139.5, "growth": -15.6}, {"no": 233, "id": "MCK022", "name": "이마트 포항이동", "manager": "황민아", "category": "할인마트", "subcategory": "이마트", "region": "경북", "region_detail": "경북포항시", "floor": "B1층", "type": "성인 / 특화", "area_total": 215.4, "area_sales": 171.4, "open_date": "2023-09-14", "contract_end": "2026-12-31", "rank": 112, "monthly_avg": 0.0, "daily_sales": 35624.0, "achievement": 99.0, "growth": -17.0}, {"no": 234, "id": "MBM023", "name": "홈플) 센텀", "manager": "이용수", "category": "할인마트", "subcategory": "홈플러스", "region": "부산", "region_detail": "부산해운대구", "floor": "1층", "type": "성인 / 특화", "area_total": 369.2, "area_sales": 265.3, "open_date": "2023-09-15", "contract_end": "2026-08-31 ", "rank": 273, "monthly_avg": 0.0, "daily_sales": 13524.0, "achievement": 61.5, "growth": -67.5}, {"no": 235, "id": "MCC029", "name": "롯마) 계양", "manager": "공석", "category": "할인마트", "subcategory": "롯데마트", "region": "인천", "region_detail": "인천계양구", "floor": "1층", "type": "성인 / 특화", "area_total": 184.3, "area_sales": 130.5, "open_date": "2023-09-22", "contract_end": "2026-12-31", "rank": 94, "monthly_avg": 0.0, "daily_sales": 48434.0, "achievement": 127.5, "growth": -28.2}, {"no": 236, "id": "MCD026", "name": "롯마) 화정", "manager": "공석", "category": "할인마트", "subcategory": "롯데마트", "region": "경기", "region_detail": "경기고양시", "floor": "1층", "type": "성인 / 특화", "area_total": 201.6, "area_sales": 149.8, "open_date": "2023-10-13", "contract_end": "2026-12-31", "rank": 277, "monthly_avg": 0.0, "daily_sales": 1829.0, "achievement": 6.1, "growth": -96.4}, {"no": 237, "id": "MBO009", "name": "광양 칠성", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "전남", "region_detail": "전남광양시", "floor": "1층", "type": "복합 / 특화", "area_total": 283.9, "area_sales": 188.3, "open_date": "2023-10-13", "contract_end": "2030-10-12", "rank": 278, "monthly_avg": 0.0, "daily_sales": 15686.0, "achievement": 78.4, "growth": -47.9}, {"no": 238, "id": "MBH017", "name": "아산 둔포", "manager": "엄초희", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충남", "region_detail": "충남아산시", "floor": "복층(2층)", "type": "복합 / 특화", "area_total": 420.8, "area_sales": 265.5, "open_date": "2023-10-13", "contract_end": "2030-10-12", "rank": 214, "monthly_avg": 0.0, "daily_sales": 30186.0, "achievement": 94.3, "growth": -53.6}, {"no": 239, "id": "MCE102", "name": "이마트 파주", "manager": "공석", "category": "할인마트", "subcategory": "이마트", "region": "경기", "region_detail": "경기파주시", "floor": "1층", "type": "복합 / 특화", "area_total": 268.8, "area_sales": 225.2, "open_date": "2023-10-19", "contract_end": "2026-12-31", "rank": 160, "monthly_avg": 0.0, "daily_sales": 29998.0, "achievement": 93.7, "growth": -3.7}, {"no": 240, "id": "MCE101", "name": "롯마) 오산", "manager": "조남오", "category": "할인마트", "subcategory": "롯데마트", "region": "경기", "region_detail": "경기오산시", "floor": "2층", "type": "복합 / 특화", "area_total": 251.8, "area_sales": 163.8, "open_date": "2023-10-20", "contract_end": "2026-12-31", "rank": 260, "monthly_avg": 0.0, "daily_sales": 17695.0, "achievement": 88.5, "growth": -43.7}, {"no": 241, "id": "MCE100", "name": "롯마) 안산 선부", "manager": "엄금란", "category": "할인마트", "subcategory": "롯데마트", "region": "경기", "region_detail": "경기안산시", "floor": "1층", "type": "복합 / 특화", "area_total": 235.1, "area_sales": 170.2, "open_date": "2023-10-20", "contract_end": "2026-12-31", "rank": 209, "monthly_avg": 0.0, "daily_sales": 24695.0, "achievement": 95.0, "growth": -54.3}, {"no": 242, "id": "MBL030", "name": "양산 물금", "manager": "이용주", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경남", "region_detail": "경남양산시", "floor": "1층", "type": "복합 / 특화", "area_total": 300.5, "area_sales": 187, "open_date": "2023-10-27", "contract_end": "2028-10-26", "rank": 118, "monthly_avg": 0.0, "daily_sales": 24174.0, "achievement": 57.6, "growth": -65.0}, {"no": 243, "id": "MCC030", "name": "롯마) 연수", "manager": "공석", "category": "할인마트", "subcategory": "롯데마트", "region": "인천", "region_detail": "인천연수구", "floor": "B1층", "type": "복합 / 특화", "area_total": 324.9, "area_sales": 197.8, "open_date": "2023-12-08", "contract_end": "2026-12-31", "rank": 258, "monthly_avg": 0.0, "daily_sales": 22954.0, "achievement": 114.8, "growth": -41.2}, {"no": 244, "id": "MCJ029", "name": "롯마) 율하", "manager": "황민아", "category": "할인마트", "subcategory": "롯데마트", "region": "대구", "region_detail": "대구동구", "floor": "2층", "type": "성인 / 특화", "area_total": 285.3, "area_sales": 198.0, "open_date": "2023-12-08", "contract_end": "2026-12-31", "rank": 36, "monthly_avg": 0.0, "daily_sales": 33622.0, "achievement": 54.2, "growth": -10.0}, {"no": 245, "id": "MCO011", "name": "롯마) 맥스 목포", "manager": "김아경", "category": "할인마트", "subcategory": "롯데마트", "region": "전남", "region_detail": "전남목포시", "floor": "2층", "type": "복합 / 특화", "area_total": 278.1, "area_sales": 230.1, "open_date": "2023-12-15", "contract_end": "2026-12-31", "rank": 213, "monthly_avg": 0.0, "daily_sales": 27557.0, "achievement": 106.0, "growth": 6.9}, {"no": 246, "id": "MBD021", "name": "동두천", "manager": "조민욱", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기동두천시", "floor": "1층", "type": "복합 / 특화", "area_total": 299.5, "area_sales": 186.8, "open_date": "2023-12-22", "contract_end": "2030-12-21", "rank": 206, "monthly_avg": 0.0, "daily_sales": 22183.0, "achievement": 73.9, "growth": -51.1}, {"no": 247, "id": "MBB026", "name": "둔촌", "manager": "정동길", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "서울", "region_detail": "서울강동구", "floor": "1층", "type": "성인 / 제외", "area_total": 51.0, "area_sales": 44.3, "open_date": "2023-12-22", "contract_end": "2028-12-14", "rank": 271, "monthly_avg": 0.0, "daily_sales": 17099.0, "achievement": 106.9, "growth": -40.2}, {"no": 248, "id": "MBK015", "name": "김천 혁신도시", "manager": "황민아", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경북", "region_detail": "경북김천시", "floor": "1층", "type": "복합 / 특화", "area_total": 295.8, "area_sales": 156, "open_date": "2023-12-28", "contract_end": "2028-12-27", "rank": 186, "monthly_avg": 0.0, "daily_sales": 26654.0, "achievement": 83.3, "growth": -32.2}, {"no": 249, "id": "MCF015", "name": "롯마) 석사", "manager": "정동길", "category": "할인마트", "subcategory": "롯데마트", "region": "강원", "region_detail": "강원춘천시", "floor": "B1층", "type": "성인 / 특화", "area_total": 203.9, "area_sales": 163.8, "open_date": "2024-01-19", "contract_end": "2026-12-31", "rank": 241, "monthly_avg": 0.0, "daily_sales": 18558.0, "achievement": 77.3, "growth": -56.9}, {"no": 250, "id": "MBE091", "name": "스타필드 수원", "manager": "조남오", "category": "쇼핑몰", "subcategory": "스타필드", "region": "경기", "region_detail": "경기수원시", "floor": "1층", "type": "성인 / 인샵", "area_total": 104.7, "area_sales": 88.1, "open_date": "2024-01-24", "contract_end": "2029-01-19", "rank": 51, "monthly_avg": 0.0, "daily_sales": 41185.0, "achievement": 71.0, "growth": -39.5}, {"no": 251, "id": "MCC031", "name": "롯마) 검단", "manager": "공석", "category": "할인마트", "subcategory": "롯데마트", "region": "인천", "region_detail": "인천서구", "floor": "1층", "type": "복합 / 특화", "area_total": 341.4, "area_sales": 229.1, "open_date": "2024-02-07", "contract_end": "2026-12-31", "rank": 154, "monthly_avg": 0.0, "daily_sales": 36419.0, "achievement": 91.0, "growth": -45.6}, {"no": 252, "id": "MBL032", "name": "창원 진해", "manager": "이용주", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경남", "region_detail": "창원진해구", "floor": "복층(2층)", "type": "복합 / 특화", "area_total": 388.2, "area_sales": 278, "open_date": "2024-02-07", "contract_end": "2031-02-06", "rank": 31, "monthly_avg": 0.0, "daily_sales": 37749.0, "achievement": 65.1, "growth": -49.6}, {"no": 253, "id": "MBB027", "name": "석촌", "manager": "정동길", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "서울", "region_detail": "서울송파구", "floor": "1층", "type": "성인 / 제외", "area_total": 103.7, "area_sales": 76.4, "open_date": "2024-02-07", "contract_end": "2029-02-06", "rank": 190, "monthly_avg": 0.0, "daily_sales": 40400.0, "achievement": 144.3, "growth": -38.6}, {"no": 254, "id": "MCH030", "name": "롯마) 아산터미널", "manager": "엄초희", "category": "할인마트", "subcategory": "롯데마트", "region": "충남", "region_detail": "충남 아산시", "floor": "B1층", "type": "성인 / 특화", "area_total": 344.7, "area_sales": 239.6, "open_date": "2024-02-23", "contract_end": "2026-12-31", "rank": 250, "monthly_avg": 0.0, "daily_sales": 16890.0, "achievement": 76.8, "growth": -57.0}, {"no": 255, "id": "MBB028", "name": "상도", "manager": "엄금란", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "서울", "region_detail": "서울동작구", "floor": "복층(2층)", "type": "복합 / 인샵", "area_total": 257.3, "area_sales": 178, "open_date": "2024-02-29", "contract_end": "2029-01-15", "rank": 100, "monthly_avg": 0.0, "daily_sales": 58548.0, "achievement": 146.4, "growth": -39.0}, {"no": 256, "id": "MBB029", "name": "영등포", "manager": "엄금란", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "서울", "region_detail": "서울영등포구", "floor": "1층", "type": "성인 / 제외", "area_total": 108.5, "area_sales": 55.8, "open_date": "2024-03-08", "contract_end": "2029-01-31", "rank": 306, "monthly_avg": 0.0, "daily_sales": null, "achievement": null, "growth": -100}, {"no": 257, "id": "MBL033", "name": "밀양 내이", "manager": "이용주", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경남", "region_detail": "경남밀양시", "floor": "복층(2층)", "type": "복합 / 특화", "area_total": 407.8, "area_sales": 296, "open_date": "2024-03-08", "contract_end": "2031-03-07", "rank": 113, "monthly_avg": 0.0, "daily_sales": 44503.0, "achievement": 111.3, "growth": -22.2}, {"no": 258, "id": "MBF009", "name": "원주 개운", "manager": "정동길", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "강원", "region_detail": "강원원주시", "floor": "1층", "type": "복합 / 특화", "area_total": 300.4, "area_sales": 207, "open_date": "2024-03-21", "contract_end": "2029-03-21", "rank": 232, "monthly_avg": 0.0, "daily_sales": 24847.0, "achievement": 88.7, "growth": -8.1}, {"no": 259, "id": "MBL035", "name": "진주 충무공", "manager": "이용주", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경남", "region_detail": "경남진주시", "floor": "복층(2층)", "type": "복합 / 특화", "area_total": 449.2, "area_sales": 335, "open_date": "2024-04-25", "contract_end": "2031-04-24", "rank": 45, "monthly_avg": 0.0, "daily_sales": 56082.0, "achievement": 107.8, "growth": -2.9}, {"no": 260, "id": "MCA055", "name": "롯마) 제타플렉스 잠실", "manager": "정동길", "category": "할인마트", "subcategory": "롯데마트", "region": "서울", "region_detail": "서울송파구", "floor": "3층", "type": "복합 / 제외", "area_total": 324.4, "area_sales": 214.4, "open_date": "2024-05-01", "contract_end": "2026-12-31", "rank": 216, "monthly_avg": 0.0, "daily_sales": 26991.0, "achievement": 90.0, "growth": -4.7}, {"no": 261, "id": "MBK016", "name": "경북도청 신도시", "manager": "황민아", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경북", "region_detail": "경북예천군", "floor": "복층(2층)", "type": "복합 / 특화", "area_total": 358.9, "area_sales": 190, "open_date": "2024-05-01", "contract_end": "2029-05-01", "rank": 161, "monthly_avg": 0.0, "daily_sales": 41849.0, "achievement": 116.2, "growth": -20.2}, {"no": 262, "id": "MBE094", "name": "수원 고색", "manager": "조남오", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기수원시", "floor": "복층(2층)", "type": "복합 / 특화", "area_total": 444.9, "area_sales": 210, "open_date": "2024-05-01", "contract_end": "2029-04-30", "rank": 259, "monthly_avg": 0.0, "daily_sales": 25068.0, "achievement": 104.5, "growth": -24.0}, {"no": 263, "id": "MBA042", "name": "청구역", "manager": "정동길", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "서울", "region_detail": "서울중구", "floor": "복층(2층)", "type": "복합 / 특화", "area_total": 203.2, "area_sales": 115, "open_date": "2024-05-30", "contract_end": "2029-05-29", "rank": 268, "monthly_avg": 0.0, "daily_sales": 24375.0, "achievement": 121.9, "growth": -38.9}, {"no": 264, "id": "MBP008", "name": "광주 수완", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "광주", "region_detail": "광주 광산구", "floor": "복층(2층)", "type": "복합 / 특화", "area_total": 299.9, "area_sales": 192.9, "open_date": "2024-06-20", "contract_end": "2031-06-19", "rank": 47, "monthly_avg": 0.0, "daily_sales": 52506.0, "achievement": 90.5, "growth": -40.9}, {"no": 265, "id": "MCP017", "name": "롯마) 광주수완", "manager": "김아경", "category": "할인마트", "subcategory": "롯데마트", "region": "광주", "region_detail": "광주 광산구", "floor": "2층", "type": "성인 / 특화", "area_total": 240.6, "area_sales": 202.6, "open_date": "2024-07-04", "contract_end": "2026-12-31", "rank": 77, "monthly_avg": 0.0, "daily_sales": 40908.0, "achievement": 73.1, "growth": -35.0}, {"no": 266, "id": "MBM025", "name": "이마트 문현", "manager": "이용수", "category": "할인마트", "subcategory": "이마트", "region": "부산", "region_detail": "부산남구", "floor": "3층", "type": "성인 / 제외", "area_total": 105.1, "area_sales": 83, "open_date": "2024-08-30", "contract_end": "2029-03-31", "rank": 227, "monthly_avg": 0.0, "daily_sales": 20858.0, "achievement": 86.9, "growth": -23.0}, {"no": 267, "id": "MCB037", "name": "NC 신구로", "manager": "엄금란", "category": "쇼핑몰", "subcategory": "이랜드", "region": "서울", "region_detail": "서울구로구", "floor": "2층", "type": "성인 / 제외", "area_total": 140.0, "area_sales": 106.0, "open_date": "2024-09-04", "contract_end": "2026-09-30", "rank": 236, "monthly_avg": 0.0, "daily_sales": 23792.0, "achievement": 119.0, "growth": 22.2}, {"no": 268, "id": "MBI010", "name": "대전 판암", "manager": "이용주", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "대전", "region_detail": "대전동구", "floor": "복층(2층)", "type": "복합 / 특화", "area_total": 285.4, "area_sales": 194, "open_date": "2024-09-05", "contract_end": "2029-09-04", "rank": 149, "monthly_avg": 0.0, "daily_sales": 30028.0, "achievement": 83.4, "growth": -25.8}, {"no": 269, "id": "MBA044", "name": "김포 양곡", "manager": "공석", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기김포시", "floor": "복층(3층)", "type": "복합 / 특화", "area_total": 464.6, "area_sales": 253.9, "open_date": "2024-09-05", "contract_end": "2031-09-04", "rank": 144, "monthly_avg": 0.0, "daily_sales": 24870.0, "achievement": 69.1, "growth": -45.8}, {"no": 270, "id": "MBG016", "name": "충북 증평", "manager": "엄초희", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충북", "region_detail": "충북증평", "floor": "복층(2층)", "type": "복합 / 특화", "area_total": 299.6, "area_sales": 193, "open_date": "2024-09-12", "contract_end": "2031-09-11", "rank": 234, "monthly_avg": 0.0, "daily_sales": 32480.0, "achievement": 124.9, "growth": 5.9}, {"no": 271, "id": "MBK017", "name": "구미 확장단지", "manager": "황민아", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경북", "region_detail": "경북구미시", "floor": "복층(2층)", "type": "복합 / 특화", "area_total": 396.4, "area_sales": 285, "open_date": "2024-09-12", "contract_end": "2029-09-11", "rank": 96, "monthly_avg": 0.0, "daily_sales": 25125.0, "achievement": 54.6, "growth": -62.7}, {"no": 272, "id": "MCL047", "name": "울산 원예농협", "manager": "이용수", "category": "할인마트", "subcategory": "기타(할인마트)", "region": "울산", "region_detail": "울산울주군", "floor": "복층(3층)", "type": "복합 / 특화", "area_total": 266.1, "area_sales": 220.6, "open_date": "2024-09-13", "contract_end": "2026-10-24", "rank": 89, "monthly_avg": 0.0, "daily_sales": 46609.0, "achievement": 116.5, "growth": -30.5}, {"no": 273, "id": "MBP009", "name": "서광주", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "광주", "region_detail": "광주 서구", "floor": "복층(3층)", "type": "복합 / 특화", "area_total": 438.7, "area_sales": 226, "open_date": "2024-10-08", "contract_end": "2031-10-07", "rank": 19, "monthly_avg": 0.0, "daily_sales": 59729.0, "achievement": 93.3, "growth": -35.9}, {"no": 274, "id": "MBO010", "name": "남악", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "전남", "region_detail": "전남무안군", "floor": "1층", "type": "복합 / 특화", "area_total": 385.7, "area_sales": 258, "open_date": "2024-10-15", "contract_end": "2031-10-14", "rank": 11, "monthly_avg": 0.0, "daily_sales": 76983.0, "achievement": 120.3, "growth": 9.4}, {"no": 275, "id": "MBE097", "name": "평택 고덕", "manager": "조남오", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기평택시", "floor": "1층", "type": "복합 / 특화", "area_total": 241.3, "area_sales": 148.2, "open_date": "2024-10-24", "contract_end": "2029-07-26", "rank": 251, "monthly_avg": 0.0, "daily_sales": 16016.0, "achievement": 72.8, "growth": -57.7}, {"no": 276, "id": "MBA045", "name": "쌍문", "manager": "정동길", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "서울", "region_detail": "서울도봉구", "floor": "복층(3층)", "type": "복합 / 특화", "area_total": 223.7, "area_sales": 127, "open_date": "2024-10-24", "contract_end": "2029-08-31", "rank": 138, "monthly_avg": 0.0, "daily_sales": 39984.0, "achievement": 100.0, "growth": -43.4}, {"no": 277, "id": "MCE111", "name": "롯마) 안성", "manager": "조남오", "category": "할인마트", "subcategory": "롯데마트", "region": "경기", "region_detail": "경기안성시", "floor": "1층", "type": "복합 / 특화", "area_total": 390.6, "area_sales": 296.0, "open_date": "2024-10-31", "contract_end": "2026-12-31", "rank": 291, "monthly_avg": 0.0, "daily_sales": 9921.0, "achievement": 55.1, "growth": -52.6}, {"no": 278, "id": "MBD022", "name": "포천 선단", "manager": "조민욱", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기포천시", "floor": "복층(2층)", "type": "복합 / 특화", "area_total": 357.3, "area_sales": 113.7, "open_date": "2024-11-07", "contract_end": "2031-11-06", "rank": 135, "monthly_avg": 0.0, "daily_sales": 34757.0, "achievement": 82.8, "growth": -47.7}, {"no": 279, "id": "MBG017", "name": "청주 오송", "manager": "엄초희", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충북", "region_detail": "충북청주시", "floor": "복층(2층)", "type": "복합 / 특화", "area_total": 287.6, "area_sales": 167, "open_date": "2024-12-05", "contract_end": "2031-12-04", "rank": 184, "monthly_avg": 0.0, "daily_sales": 36059.0, "achievement": 120.2, "growth": -12.6}, {"no": 280, "id": "MBP010", "name": "광주 용봉", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "광주", "region_detail": "광주북구", "floor": "복층(3층)", "type": "복합 / 특화", "area_total": 306.1, "area_sales": 177.7, "open_date": "2024-12-19", "contract_end": "2029-12-18", "rank": 179, "monthly_avg": 0.0, "daily_sales": 29369.0, "achievement": 86.4, "growth": -29.9}, {"no": 281, "id": "MBE098", "name": "시흥 능곡", "manager": "조민욱", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기시흥시", "floor": "복층(2층)", "type": "복합 / 특화", "area_total": 342.5, "area_sales": 196.8, "open_date": "2024-12-23", "contract_end": "2029-12-23", "rank": 180, "monthly_avg": 0.0, "daily_sales": 33791.0, "achievement": 93.9, "growth": -45.3}, {"no": 282, "id": "MBE103", "name": "동탄 영천", "manager": "조남오", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기화성시", "floor": "복층(2층)", "type": "복합 / 특화", "area_total": 411.5, "area_sales": 238.6, "open_date": "2025-03-27", "contract_end": "2030-03-26", "rank": 229, "monthly_avg": 0.0, "daily_sales": 19133.0, "achievement": 79.7, "growth": -72.5}, {"no": 283, "id": "MBB035", "name": "고덕", "manager": "정동길", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "서울", "region_detail": "서울강동구", "floor": "복층(2층)", "type": "복합 / 인샵", "area_total": 363.1, "area_sales": 310, "open_date": "2025-04-30", "contract_end": "2030-04-29", "rank": 21, "monthly_avg": 0.0, "daily_sales": 55933.0, "achievement": 87.4, "growth": 7.2}, {"no": 284, "id": "MBE104", "name": "하남 감일", "manager": "조민욱", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기하남시", "floor": "복층(2층)", "type": "복합 / 인샵", "area_total": 343.3, "area_sales": 229.9, "open_date": "2025-04-30", "contract_end": "2030-04-29", "rank": 225, "monthly_avg": 0.0, "daily_sales": 34144.0, "achievement": 142.3, "growth": -50.7}, {"no": 285, "id": "MBQ006", "name": "제주 탑동", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "제주", "region_detail": "제주제주시", "floor": "복층(2층)", "type": "복합 / 인샵", "area_total": 316.7, "area_sales": 288, "open_date": "2025-04-30", "contract_end": "2030-04-29", "rank": 12, "monthly_avg": 0.0, "daily_sales": 105765.0, "achievement": 176.3, "growth": 22.6}, {"no": 286, "id": "MBL040", "name": "거제 고현", "manager": "이용주", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경남", "region_detail": "경남거제시", "floor": "복층(4층)", "type": "복합 / 인샵", "area_total": 311.8, "area_sales": 186, "open_date": "2025-05-15", "contract_end": "2032-05-21", "rank": 196, "monthly_avg": 0.0, "daily_sales": 28793.0, "achievement": 110.7, "growth": -82.7}, {"no": 287, "id": "MCE118", "name": "롯마) 평택", "manager": "조남오", "category": "할인마트", "subcategory": "롯데마트", "region": "경기", "region_detail": "경기평택시", "floor": "1층", "type": "성인 / 인샵", "area_total": 289.2, "area_sales": 266.8, "open_date": "2025-05-29", "contract_end": "2026-12-31", "rank": 298, "monthly_avg": 0.0, "daily_sales": 8417.0, "achievement": 60.1, "growth": null}, {"no": 288, "id": "MBJ020", "name": "롯데백화점 대구", "manager": "황민아", "category": "백화점", "subcategory": "롯데쇼핑", "region": "대구", "region_detail": "대구북구", "floor": "2층", "type": "성인 / 인샵", "area_total": 237.0, "area_sales": 201.8, "open_date": "2025-05-30", "contract_end": "2027-01-31", "rank": 123, "monthly_avg": 0.0, "daily_sales": 36458.0, "achievement": 101.3, "growth": null}, {"no": 289, "id": "MBB036", "name": "이마트 목동", "manager": "엄금란", "category": "할인마트", "subcategory": "이마트", "region": "서울", "region_detail": "서울양천구", "floor": "B2층", "type": "성인 / 인샵", "area_total": 107.9, "area_sales": 83.2, "open_date": "2025-06-19", "contract_end": "2028-03-31", "rank": 221, "monthly_avg": 0.0, "daily_sales": 25263.0, "achievement": 126.3, "growth": null}, {"no": 290, "id": "MBE108", "name": "스타필드마켓 일산", "manager": "공석", "category": "할인마트", "subcategory": "이마트", "region": "경기", "region_detail": "경기고양시", "floor": "2층", "type": "성인 / 인샵", "area_total": 129.7, "area_sales": 111.0, "open_date": "2025-06-26", "contract_end": "2028-03-31", "rank": 262, "monthly_avg": 0.0, "daily_sales": 17584.0, "achievement": 87.9, "growth": null}, {"no": 291, "id": "MBQ007", "name": "제주 연북", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "제주", "region_detail": "제주오라동", "floor": "1층", "type": "복합 / 인샵", "area_total": 299.8, "area_sales": 201.3, "open_date": "2025-06-27", "contract_end": "2040-06-26", "rank": 28, "monthly_avg": 0.0, "daily_sales": 75978.0, "achievement": 126.6, "growth": null}, {"no": 292, "id": "MBA051", "name": "구의 이스트폴", "manager": "엄금란", "category": "쇼핑몰", "subcategory": "이랜드", "region": "서울", "region_detail": "서울광진구", "floor": "GF층", "type": "성인 / 인샵", "area_total": 222.4, "area_sales": 181.5, "open_date": "2025-06-28", "contract_end": "2030-07-11", "rank": 18, "monthly_avg": 0.0, "daily_sales": 61546.0, "achievement": 128.2, "growth": null}, {"no": 293, "id": "MBF011", "name": "원주기업도시", "manager": "정동길", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "강원", "region_detail": "강원원주시", "floor": "복층(4층)", "type": "복합 / 인샵", "area_total": 357.1, "area_sales": 179.7, "open_date": "2025-07-03", "contract_end": "2032-07-02", "rank": 246, "monthly_avg": 0.0, "daily_sales": 27322.0, "achievement": 91.1, "growth": null}, {"no": 294, "id": "MBH019", "name": "충남 예산", "manager": "엄초희", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충남", "region_detail": "충남예산시", "floor": "복층(2층)", "type": "복합 / 인샵", "area_total": 181.5, "area_sales": 140, "open_date": "2025-07-03", "contract_end": "2032-07-02", "rank": 275, "monthly_avg": 0.0, "daily_sales": 13053.0, "achievement": 65.3, "growth": null}, {"no": 295, "id": "MBJ022", "name": "대구 수성", "manager": "황민아", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "대구", "region_detail": "대구수성구", "floor": "복층(2층)", "type": "복합 / 인샵", "area_total": 252.1, "area_sales": 138, "open_date": "2025-07-17", "contract_end": "2030-07-16", "rank": 243, "monthly_avg": 0.0, "daily_sales": 35935.0, "achievement": 119.8, "growth": null}, {"no": 296, "id": "MBG019", "name": "청주수곡점", "manager": "엄초희", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충북", "region_detail": "충북청주시", "floor": "복층(2층)", "type": "복합 / 인샵", "area_total": 489.4, "area_sales": 336.1, "open_date": "2025-07-24", "contract_end": "2032-07-23", "rank": 67, "monthly_avg": 0.0, "daily_sales": 45997.0, "achievement": 95.8, "growth": null}, {"no": 297, "id": "MBE114", "name": "이마트 남양주", "manager": "조민욱", "category": "할인마트", "subcategory": "이마트", "region": "경기", "region_detail": "경기남양주시", "floor": "2층", "type": "성인 / 인샵", "area_total": 173.6, "area_sales": 136.8, "open_date": "2025-07-24", "contract_end": "2028-03-31", "rank": 41, "monthly_avg": 0.0, "daily_sales": 55321.0, "achievement": 106.4, "growth": null}, {"no": 298, "id": "MBE116", "name": "스타필드마켓 동탄", "manager": "조남오", "category": "할인마트", "subcategory": "이마트", "region": "경기", "region_detail": "경기화성시", "floor": "2층", "type": "성인 / 인샵", "area_total": 167.3, "area_sales": 140.3, "open_date": "2025-07-31", "contract_end": "2028-03-31", "rank": 248, "monthly_avg": 0.0, "daily_sales": 22257.0, "achievement": 92.7, "growth": null}, {"no": 299, "id": "MBH021", "name": "태안", "manager": "엄초희", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "충남", "region_detail": "충남태안군", "floor": "복층(2층)", "type": "복합 / 인샵", "area_total": 277.1, "area_sales": 204, "open_date": "2025-08-07", "contract_end": "2032-08-06", "rank": 203, "monthly_avg": 0.0, "daily_sales": 41019.0, "achievement": 157.8, "growth": null}, {"no": 300, "id": "MBK022", "name": "스타필드마켓 경산", "manager": "황민아", "category": "할인마트", "subcategory": "이마트", "region": "경북", "region_detail": "경북경산시", "floor": "2층", "type": "성인 / 제외", "area_total": 101.6, "area_sales": 93.9, "open_date": "2025-08-21", "contract_end": "2028-03-31", "rank": 151, "monthly_avg": 0.0, "daily_sales": 35034.0, "achievement": 103.0, "growth": null}, {"no": 301, "id": "MBC023", "name": "트레이더스 구월", "manager": "공석", "category": "할인마트", "subcategory": "이마트", "region": "인천", "region_detail": "인천남동구", "floor": "1층", "type": "성인 / 인샵", "area_total": 144.9, "area_sales": 124.2, "open_date": "2025-09-05", "contract_end": "2028-03-31", "rank": 43, "monthly_avg": 0.0, "daily_sales": 61313.0, "achievement": 139.3, "growth": null}, {"no": 302, "id": "MBF016", "name": "이마트 속초", "manager": "정동길", "category": "할인마트", "subcategory": "이마트", "region": "강원", "region_detail": "강원속초시", "floor": "1층", "type": "성인 / 제외", "area_total": 166.3, "area_sales": 141.5, "open_date": "2025-09-25", "contract_end": "2027-12-31", "rank": 256, "monthly_avg": 0.0, "daily_sales": 15056.0, "achievement": 75.3, "growth": null}, {"no": 303, "id": "MCE121", "name": "모다아울렛 오산동탄", "manager": "조남오", "category": "쇼핑몰", "subcategory": "기타(쇼핑몰)", "region": "경기", "region_detail": "경기오산시", "floor": "1층", "type": "복합 / 인샵", "area_total": 284.5, "area_sales": 191.7, "open_date": "2025-10-02", "contract_end": "2029-12-31", "rank": 57, "monthly_avg": 0.0, "daily_sales": 24393.0, "achievement": 53.0, "growth": null}, {"no": 304, "id": "MBM030", "name": "이마트 해운대", "manager": "이용수", "category": "할인마트", "subcategory": "이마트", "region": "부산", "region_detail": "부산해운대구", "floor": "2층", "type": "성인 / 인샵", "area_total": 204.7, "area_sales": 152.4, "open_date": "2025-10-30", "contract_end": "2027-03-31", "rank": 76, "monthly_avg": 0.0, "daily_sales": 45684.0, "achievement": 126.9, "growth": null}, {"no": 305, "id": "MCJ025", "name": "이마트월배", "manager": "황민아", "category": "할인마트", "subcategory": "이마트", "region": "대구", "region_detail": "대구달서구", "floor": "2층", "type": "성인 / 인샵", "area_total": 158.0, "area_sales": 144.6, "open_date": "2022-12-15", "contract_end": "2026-12-31", "rank": 15, "monthly_avg": 0.0, "daily_sales": 70109.0, "achievement": 125.2, "growth": -8.6}, {"no": 306, "id": "MBE121", "name": "스타필드 빌리지 운정", "manager": "공석", "category": "쇼핑몰", "subcategory": "스타필드", "region": "경기", "region_detail": "경기 파주시", "floor": "1층", "type": "성인 / 인샵", "area_total": 149, "area_sales": 123, "open_date": "2026-03-31", "contract_end": "2029-03-27", "rank": 76, "monthly_avg": 0.0, "daily_sales": 27721.0, "achievement": 46.2, "growth": null}, {"no": 307, "id": "MBC003", "name": "홈플) 작전", "manager": "공석", "category": "할인마트", "subcategory": "홈플러스", "region": "인천", "region_detail": "인천계양구", "floor": "2층", "type": "성인 / 제외", "area_total": 349.8, "area_sales": 304.4, "open_date": "2015-04-17", "contract_end": "2027-02-28", "rank": 228, "monthly_avg": 0.0, "daily_sales": 30250.0, "achievement": 108.0, "growth": -42.2}, {"no": 308, "id": "MBA055", "name": "이마트 은평", "manager": "엄금란", "category": "할인마트", "subcategory": "이마트", "region": "서울", "region_detail": "서울은평구", "floor": "5층", "type": "성인 / 인샵", "area_total": 208, "area_sales": 144, "open_date": "2026-04-23", "contract_end": "2029-03-31", "rank": 9, "monthly_avg": 0.0, "daily_sales": 37668.0, "achievement": 67.3, "growth": null}, {"no": 309, "id": "MBE123", "name": "용인 유방점", "manager": "조남오", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경기", "region_detail": "경기용인시", "floor": "1층", "type": "복합 / 특화", "area_total": 298.4, "area_sales": 231.1, "open_date": "2026-04-24", "contract_end": "2041-04-23", "rank": 4, "monthly_avg": 0.0, "daily_sales": 38136.0, "achievement": 40.6, "growth": null}, {"no": 310, "id": "MBC025", "name": "이마트 검단", "manager": "공석", "category": "할인마트", "subcategory": "이마트", "region": "인천", "region_detail": "인천 서구", "floor": "3층", "type": "성인 / 인샵", "area_total": 140, "area_sales": 128, "open_date": "2026-04-30", "contract_end": "2029-03-31", "rank": 8, "monthly_avg": 0.0, "daily_sales": 34160.0, "achievement": 56.9, "growth": null}, {"no": 311, "id": "MBE124", "name": "이마트 양재", "manager": "정동길", "category": "할인마트", "subcategory": "이마트", "region": "서울", "region_detail": "서울 서초구", "floor": "B1층", "type": "성인 / 인샵", "area_total": 198.3, "area_sales": 146.8, "open_date": "2026-05-07", "contract_end": "2029-03-31", "rank": 5, "monthly_avg": null, "daily_sales": 20200.0, "achievement": 28.9, "growth": null}, {"no": 312, "id": "MBQ009", "name": "서귀포 토평", "manager": "김아경", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "제주", "region_detail": "제주서귀포시", "floor": "1층", "type": "복합 / 특화", "area_total": 311.5, "area_sales": 231.3, "open_date": "2026-04-29", "contract_end": "2031-01-30", "rank": 3, "monthly_avg": 0.0, "daily_sales": 69886.0, "achievement": 53.8, "growth": null}, {"no": 313, "id": "MBK023", "name": "포항성곡", "manager": "황민아", "category": "가두 직영점", "subcategory": "가두 직영점", "region": "경북", "region_detail": "경북포항시", "floor": "복층(2층)", "type": "복합 / 특화", "area_total": 309, "area_sales": 212, "open_date": "2026-05-14", "contract_end": "2031-01-21", "rank": 2, "monthly_avg": null, "daily_sales": 510265.0, "achievement": null, "growth": null}];
+
+// ===== Google Apps Script 연동 설정 =====
+// 아래 URL을 Apps Script 배포 후 받은 웹앱 URL로 교체하세요
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby4mR0aXL54CjkkX4yWrXmxsCe-CEzhY0LUfT4K9FNzWaX56YtUhvksClv3lBh6BEdq/exec';
+
+// POST 요청 (신청 저장 / 상태변경 / 완료정리)
+function sheetPost(params) {
+  if (APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+    showToast('⚠️ Apps Script URL을 설정해주세요 (설치 가이드 참고)');
+    return Promise.reject('URL not set');
+  }
+  const fd = new FormData();
+  Object.entries(params).forEach(([k,v]) => fd.append(k, v));
+  return fetch(APPS_SCRIPT_URL, { method:'POST', body:fd, mode:'no-cors' });
+}
+
+// GET 요청 (대시보드 데이터 읽기 - JSONP 방식으로 크로스도메인 처리)
+function sheetGet(callback) {
+  if (APPS_SCRIPT_URL === 'YOUR_APPS_SCRIPT_URL_HERE') {
+    callback({ tasks: [] });
+    return;
+  }
+  const cbName = 'topten_cb_' + Date.now();
+  window[cbName] = function(data) {
+    delete window[cbName];
+    const el = document.getElementById('jsonp-loader');
+    if (el) el.remove();
+    callback(data);
+  };
+  const s = document.createElement('script');
+  s.id = 'jsonp-loader';
+  s.src = APPS_SCRIPT_URL + '?cb=' + cbName + '&t=' + Date.now();
+  s.onerror = function() {
+    delete window[cbName];
+    s.remove();
+    showToast('❗ 데이터 로드 실패 — 네트워크를 확인해주세요');
+    callback({ tasks: [] });
+  };
+  // 기존 로더 제거
+  const old = document.getElementById('jsonp-loader');
+  if (old) old.remove();
+  document.head.appendChild(s);
+}
+
+// ===== 유틸 =====
+let dashFilter = 'all';
+
+function showPage(id, btn) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(id==='dashboard') renderDashboard();
+}
+
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+
+function today() {
+  return new Date().toISOString().slice(0,10);
+}
+
+// ===== 초기화 =====
+window.onload = function() {
+  // 담당자 필터
+  const mgrs=[...new Set(STORES.map(s=>s.manager).filter(Boolean))].sort();
+  const sel=document.getElementById('filter-manager');
+  mgrs.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;sel.appendChild(o);});
+
+  // datalist 공통
+  ['open-store-dl','close-store-dl','admin-store-dl'].forEach(dlId=>{
+    const dl=document.getElementById(dlId);
+    STORES.forEach(s=>{const o=document.createElement('option');o.value=s.name;dl.appendChild(o);});
+  });
+
+  // 오늘 날짜 기본값
+  ['open-req-date','close-req-date','admin-req-date'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.value=today();
+  });
+
+  filterStores();
+  renderDashboard();
+};
+
+// ===== 매장 검색 =====
+function filterStores() {
+  const q=document.getElementById('search-input').value.trim().toLowerCase();
+  const region=document.getElementById('filter-region').value;
+  const cat=document.getElementById('filter-category').value;
+  const mgr=document.getElementById('filter-manager').value;
+
+  let filtered=STORES.filter(s=>{
+    if(q && !s.name.toLowerCase().includes(q) && !s.region_detail.toLowerCase().includes(q)) return false;
+    if(region && s.region!==region) return false;
+    if(cat && s.category!==cat) return false;
+    if(mgr && s.manager!==mgr) return false;
+    return true;
+  });
+
+  const now=new Date();
+  const soon=STORES.filter(s=>{
+    if(!s.contract_end) return false;
+    const d=new Date(s.contract_end);
+    return (d-now)/(86400000)>=0 && (d-now)/(86400000)<=90;
+  }).length;
+
+  document.getElementById('st-total').textContent=STORES.length;
+  document.getElementById('st-filtered').textContent=filtered.length;
+  document.getElementById('st-soon').textContent=soon;
+  document.getElementById('result-count').textContent=filtered.length+'개 매장 표시 중';
+  renderGrid(filtered);
+}
+
+function renderGrid(list) {
+  const g=document.getElementById('store-grid');
+  if(!list.length){g.innerHTML='<div class="empty-state" style="grid-column:1/-1"><div class="es-icon">🔍</div><p>검색 결과 없음</p></div>';return;}
+  g.innerHTML=list.map(s=>{
+    const ac=s.achievement==null?'neutral':s.achievement>=100?'positive':s.achievement>=80?'neutral':'negative';
+    const gc=s.growth==null?'neutral':s.growth>=0?'positive':'negative';
+    return `<div class="store-card" onclick="openModal('${s.id}')">
+      <div class="sc-header"><div class="sc-name">${s.name}</div>${s.rank?`<span class="sc-rank">#${s.rank}</span>`:''}</div>
+      <div class="sc-meta">
+        <span class="tag region">📍 ${s.region}</span>
+        <span class="tag mgr">👤 ${s.manager||'-'}</span>
+        <span class="tag cat">${s.category}</span>
+      </div>
+      <div class="sc-kpi">
+        <div class="kpi-item"><div class="k-val ${ac}">${s.achievement!=null?s.achievement+'%':'-'}</div><div class="k-lbl">일간달성</div></div>
+        <div class="kpi-item"><div class="k-val ${gc}">${s.growth!=null?(s.growth>0?'+':'')+s.growth+'%':'-'}</div><div class="k-lbl">신장율</div></div>
+        <div class="kpi-item"><div class="k-val neutral">${s.area_total?s.area_total+'㎡':'-'}</div><div class="k-lbl">면적</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openModal(id) {
+  const s=STORES.find(x=>x.id===id); if(!s) return;
+  document.getElementById('modal-name').textContent=s.name;
+  const ce=s.contract_end?new Date(s.contract_end):null;
+  const dl=ce?Math.round((ce-new Date())/86400000):null;
+  const cc=dl!=null&&dl<90?'color:var(--danger);font-weight:700':'';
+  document.getElementById('modal-info').innerHTML=`
+    <div class="info-item"><div class="i-lbl">매장 ID</div><div class="i-val">${s.id}</div></div>
+    <div class="info-item"><div class="i-lbl">담당자</div><div class="i-val">👤 ${s.manager||'-'}</div></div>
+    <div class="info-item"><div class="i-lbl">유형</div><div class="i-val">${s.category}</div></div>
+    <div class="info-item"><div class="i-lbl">세부유형</div><div class="i-val">${s.subcategory||'-'}</div></div>
+    <div class="info-item"><div class="i-lbl">지역</div><div class="i-val">📍 ${s.region_detail||s.region}</div></div>
+    <div class="info-item"><div class="i-lbl">층</div><div class="i-val">${s.floor||'-'}</div></div>
+    <div class="info-item"><div class="i-lbl">매장형태</div><div class="i-val">${s.type||'-'}</div></div>
+    <div class="info-item"><div class="i-lbl">면적(전체/영업)</div><div class="i-val">${s.area_total||'-'}㎡ / ${s.area_sales||'-'}㎡</div></div>
+    <div class="info-item"><div class="i-lbl">입점일</div><div class="i-val">${s.open_date||'-'}</div></div>
+    <div class="info-item"><div class="i-lbl">계약종료일</div><div class="i-val" style="${cc}">${s.contract_end||'-'}${dl!=null?' (D-'+dl+')':''}</div></div>`;
+  const ac=s.achievement==null?'':s.achievement>=100?'color:var(--success)':s.achievement>=80?'color:var(--info)':'color:var(--danger)';
+  const gc=s.growth==null?'':s.growth>=0?'color:var(--success)':'color:var(--danger)';
+  document.getElementById('modal-kpi').innerHTML=`
+    <div class="kpi-big"><div class="kb-val" style="${ac}">${s.achievement!=null?s.achievement+'%':'-'}</div><div class="kb-lbl">일간 달성율</div></div>
+    <div class="kpi-big"><div class="kb-val" style="${gc}">${s.growth!=null?(s.growth>0?'+':'')+s.growth+'%':'-'}</div><div class="kb-lbl">신장율</div></div>
+    <div class="kpi-big"><div class="kb-val neutral">${s.rank?'#'+s.rank:'-'}</div><div class="kb-lbl">RANK</div></div>
+    <div class="kpi-big"><div class="kb-val neutral">${s.daily_sales?(s.daily_sales/10000).toFixed(0)+'만':'-'}</div><div class="kb-lbl">일간 실적</div></div>
+    <div class="kpi-big"><div class="kb-val neutral">${s.monthly_avg!=null?s.monthly_avg+'억':'-'}</div><div class="kb-lbl">월평균</div></div>
+    <div class="kpi-big"><div class="kb-val neutral">${s.area_total?s.area_total+'㎡':'-'}</div><div class="kb-lbl">전체면적</div></div>`;
+  document.getElementById('store-modal').classList.add('open');
+}
+function closeModal(){document.getElementById('store-modal').classList.remove('open');}
+
+// ===== 신청 폼 =====
+function selectRadio(btn, fieldId, val) {
+  const parent=btn.parentElement;
+  parent.querySelectorAll('.radio-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  document.getElementById(fieldId).value=val;
+}
+
+function showFiles(input, targetId) {
+  const names=[...input.files].map(f=>f.name);
+  const el=document.getElementById(targetId);
+  el.innerHTML=names.map(n=>`<span class="file-chip">📄 ${n}</span>`).join('');
+}
+
+// 오픈 업무별 특수 필드 정의
+const OPEN_TASKS = {
+  code: {
+    name:'종사업장 코드 발행',
+    fields: `
+    <div class="form-box">
+      <div class="form-box-title">🔢 필수 첨부파일</div>
+      <div class="fg">
+        <label>① 계약서 <span class="req">*</span></label>
+        <div class="file-zone"><input type="file" id="f-code-contract" onchange="showFiles(this,'fn-code-contract')"><div class="fz-icon">📄</div><div class="fz-text">계약서 파일 첨부</div><div class="fz-req">필수</div></div>
+        <div class="file-names" id="fn-code-contract"></div>
+      </div>
+      <div class="fg">
+        <label>② 신규매장 기안 링크 <span class="req">*</span></label>
+        <div class="link-input-wrap"><input type="url" id="f-code-link" placeholder="https://..."><span class="link-badge">🔗 링크</span></div>
+      </div>
+    </div>`
+  },
+  ppt: {
+    name:'오픈 보고 한판 PPT 제작',
+    fields: `
+    <div class="form-box">
+      <div class="form-box-title">📊 필수 첨부파일</div>
+      <div class="fg">
+        <label>① 계약서 <span class="req">*</span></label>
+        <div class="file-zone"><input type="file" id="f-ppt-contract" onchange="showFiles(this,'fn-ppt-contract')"><div class="fz-icon">📄</div><div class="fz-text">계약서 파일 첨부</div><div class="fz-req">필수</div></div>
+        <div class="file-names" id="fn-ppt-contract"></div>
+      </div>
+      <div class="fg">
+        <label>② 신규매장 기안 링크 <span class="req">*</span></label>
+        <div class="link-input-wrap"><input type="url" id="f-ppt-link" placeholder="https://..."><span class="link-badge">🔗 링크</span></div>
+      </div>
+      <div class="fg">
+        <label>③ BEP 파일 <span class="req">*</span></label>
+        <div class="file-zone"><input type="file" id="f-ppt-bep" onchange="showFiles(this,'fn-ppt-bep')"><div class="fz-icon">📊</div><div class="fz-text">BEP 파일 첨부</div><div class="fz-req">필수</div></div>
+        <div class="file-names" id="fn-ppt-bep"></div>
+      </div>
+      <div class="cond-block">
+        <div class="cb-title">⚠️ 유통사 입점인 경우 추가 항목</div>
+        <div class="fg" style="margin-bottom:10px;">
+          <label>④ 동층 도면</label>
+          <div class="file-zone"><input type="file" id="f-ppt-floor" onchange="showFiles(this,'fn-ppt-floor')"><div class="fz-icon">🗺️</div><div class="fz-text">동층 도면 파일 첨부</div></div>
+          <div class="file-names" id="fn-ppt-floor"></div>
+        </div>
+        <div class="fg" style="margin-bottom:0;">
+          <label>동시 오픈 다른 테넌트 오픈 일자</label>
+          <textarea id="f-ppt-tenant" placeholder="예) A브랜드 2026-07-01 / B브랜드 2026-07-05" style="min-height:60px;width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;"></textarea>
+        </div>
+      </div>
+      <div class="fg" style="margin-top:12px;margin-bottom:0;">
+        <label>특이사항</label>
+        <textarea id="f-ppt-note" placeholder="특이사항 있으면 입력해주세요" style="min-height:60px;width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;"></textarea>
+      </div>
+    </div>`
+  },
+  mail: {
+    name:'유관부서 메일 발송',
+    fields: `
+    <div class="form-box">
+      <div class="form-box-title">📧 메일 발송 대상</div>
+      <div class="fg">
+        <label>발송 대상 부서 <span class="req">*</span></label>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;" id="mail-dept-group">
+          <button class="radio-btn" onclick="toggleMulti(this,'mail-dept')">인테리어팀</button>
+          <button class="radio-btn" onclick="toggleMulti(this,'mail-dept')">마케팅팀</button>
+          <button class="radio-btn" onclick="toggleMulti(this,'mail-dept')">브기팀</button>
+          <button class="radio-btn" onclick="toggleMulti(this,'mail-dept')">VMD팀</button>
+          <button class="radio-btn" onclick="toggleMulti(this,'mail-dept')">HR팀</button>
+          <button class="radio-btn" onclick="toggleMulti(this,'mail-dept')">영업관리팀</button>
+          <button class="radio-btn" onclick="toggleMulti(this,'mail-dept')">총무팀</button>
+          <button class="radio-btn" onclick="toggleMulti(this,'mail-dept')">물류팀</button>
+        </div>
+      </div>
+      <div class="fg">
+        <label>발송 예정일 <span class="req">*</span></label>
+        <input type="date" id="f-mail-date" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;">
+      </div>
+      <div class="fg" style="margin-bottom:0;">
+        <label>주요 전달 내용</label>
+        <textarea id="f-mail-content" placeholder="각 부서에 전달할 내용을 입력해주세요" style="min-height:80px;width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;"></textarea>
+      </div>
+    </div>`
+  },
+  works: {
+    name:'웍스 오픈 프로세스 등록 (전산장비)',
+    fields: `
+    <div class="form-box">
+      <div class="form-box-title">💻 배송 정보 <span style="font-size:11px;color:var(--muted);font-weight:400;">(전산장비 발송)</span></div>
+      <div class="fg">
+        <label>도착 주소 <span class="req">*</span></label>
+        <input type="text" id="f-works-addr" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;" placeholder="예) 서울시 마포구 상암동 ○○빌딩 1층">
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>수령자명 <span class="req">*</span></label>
+          <input type="text" id="f-works-recv" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;" placeholder="수령자 이름">
+        </div>
+        <div class="fg">
+          <label>수령자 연락처 <span class="req">*</span></label>
+          <input type="tel" id="f-works-tel" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;" placeholder="010-0000-0000">
+        </div>
+      </div>
+      <div class="fg">
+        <label>발송 요청일자 <span class="req">*</span></label>
+        <input type="date" id="f-works-send" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;">
+      </div>
+    </div>
+    <div class="form-box">
+      <div class="form-box-title">🔧 개통·설치 일정</div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>프린터기 설치일 <span class="req">*</span></label>
+          <input type="date" id="f-works-printer" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;">
+        </div>
+        <div class="fg">
+          <label>인터넷 개통일 <span class="req">*</span></label>
+          <input type="date" id="f-works-net" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;">
+        </div>
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>전화 개통일 <span class="req">*</span></label>
+          <input type="date" id="f-works-phone" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;">
+        </div>
+        <div class="fg">
+          <label>성인/밸런스 구분</label>
+          <select id="f-works-type" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;">
+            <option value="">선택</option>
+            <option>성인 (레이저 프린터)</option>
+            <option>밸런스 (잉크젯 프린터)</option>
+          </select>
+        </div>
+      </div>
+    </div>`
+  },
+  goods: {
+    name:'판부자재·사은품 출고 요청',
+    fields: `
+    <div class="form-box">
+      <div class="form-box-title">📦 필수 첨부파일</div>
+      <div class="fg">
+        <label>① 판부자재 파일 <span class="req">*</span></label>
+        <div class="file-zone"><input type="file" id="f-goods-mat" onchange="showFiles(this,'fn-goods-mat')"><div class="fz-icon">📦</div><div class="fz-text">판부자재 파일 첨부</div><div class="fz-req">필수</div></div>
+        <div class="file-names" id="fn-goods-mat"></div>
+      </div>
+      <div class="fg" style="margin-bottom:0;">
+        <label>② 사은품 파일 <span class="req">*</span></label>
+        <div class="file-zone"><input type="file" id="f-goods-gift" onchange="showFiles(this,'fn-goods-gift')"><div class="fz-icon">🎁</div><div class="fz-text">사은품 파일 첨부</div><div class="fz-req">필수</div></div>
+        <div class="file-names" id="fn-goods-gift"></div>
+      </div>
+    </div>`
+  },
+  cctv: {
+    name:'CCTV 설치 요청',
+    fields: `
+    <div class="form-box">
+      <div class="form-box-title">📹 CCTV 설치 정보</div>
+      <div class="fg">
+        <label>업체 <span class="hint">(기본: SK)</span></label>
+        <input type="text" id="f-cctv-company" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;" value="SK" placeholder="SK">
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>설치 예정일</label>
+          <input type="date" id="f-cctv-date" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;">
+        </div>
+        <div class="fg">
+          <label>견적 요청 여부</label>
+          <select id="f-cctv-quote" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;"><option>견적 요청 필요</option><option>견적 완료</option></select>
+        </div>
+      </div>
+    </div>`
+  },
+  angle: {
+    name:'앵글 설치 요청',
+    fields: `
+    <div class="form-box">
+      <div class="form-box-title">🔩 앵글 설치 정보</div>
+      <div class="fg">
+        <label>업체 소통 내용</label>
+        <textarea id="f-angle-note" placeholder="도면 전달 여부, 견적서 요청 현황, 현장 소장 연락처 등" style="min-height:80px;width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;"></textarea>
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>설치 예정일</label>
+          <input type="date" id="f-angle-date" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;">
+        </div>
+        <div class="fg">
+          <label>예상 비용 (평당 15~20만)</label>
+          <input type="text" id="f-angle-cost" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;" placeholder="예) 300만원">
+        </div>
+      </div>
+      <div class="fg" style="margin-bottom:0;">
+        <label>도면 파일</label>
+        <div class="file-zone"><input type="file" id="f-angle-file" onchange="showFiles(this,'fn-angle-file')"><div class="fz-icon">🗺️</div><div class="fz-text">도면 파일 첨부</div></div>
+        <div class="file-names" id="fn-angle-file"></div>
+      </div>
+    </div>`
+  },
+  hanger: {
+    name:'옷걸이 발주 요청',
+    fields: `
+    <div class="form-box">
+      <div class="form-box-title">🧥 옷걸이 발주 정보</div>
+      <div class="fg">
+        <label>업체 정보</label>
+        <input type="text" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;" value="성부실업 김승욱 사장님 (010-5241-0741)" readonly>
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>발주 수량</label>
+          <input type="text" id="f-hanger-qty" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;" placeholder="수량 입력">
+        </div>
+        <div class="fg">
+          <label>납기 요청일</label>
+          <input type="date" id="f-hanger-date" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;">
+        </div>
+      </div>
+    </div>`
+  },
+  banner: {
+    name:'휘장 설치 요청',
+    fields: `
+    <div class="form-box">
+      <div class="form-box-title">🚩 휘장 설치 정보</div>
+      <div class="fg">
+        <label>업체명 <span class="hint">(기본: 나이트스크린)</span></label>
+        <input type="text" id="f-banner-company" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;" value="나이트스크린">
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>설치 예정일</label>
+          <input type="date" id="f-banner-date" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;">
+        </div>
+        <div class="fg">
+          <label>수량/사이즈</label>
+          <input type="text" id="f-banner-size" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;" placeholder="예) 3m x 1m, 2장">
+        </div>
+      </div>
+    </div>`
+  },
+  doc: {
+    name:'기안 작성 요청 (앵글 설치)',
+    fields: `
+    <div class="form-box">
+      <div class="form-box-title">📝 기안 작성 정보</div>
+      <div class="fg">
+        <label>기안 종류</label>
+        <select id="f-doc-type" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;">
+          <option>앵글 설치 기안</option>
+          <option>직투 기안</option>
+          <option>기타 기안</option>
+        </select>
+      </div>
+      <div class="fg-row">
+        <div class="fg">
+          <label>기안 상신 예정일</label>
+          <input type="date" id="f-doc-date" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;">
+        </div>
+        <div class="fg">
+          <label>예상 금액</label>
+          <input type="text" id="f-doc-amount" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;" placeholder="예) 300만원">
+        </div>
+      </div>
+      <div class="fg" style="margin-bottom:0;">
+        <label>견적서 파일</label>
+        <div class="file-zone"><input type="file" id="f-doc-file" onchange="showFiles(this,'fn-doc-file')"><div class="fz-icon">📄</div><div class="fz-text">견적서 첨부</div></div>
+        <div class="file-names" id="fn-doc-file"></div>
+      </div>
+    </div>`
+  }
+};
+
+// 폐점 업무 특수 필드
+const CLOSE_TASKS = {
+  logistics: {name:'물류 / RT 중지 신청', fields:`
+    <div class="form-box"><div class="form-box-title">🚚 물류·RT 중지 정보</div>
+    <div class="fg"><label>중지 요청일 <span class="req">*</span></label><input type="date" id="f-log-date" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;"></div>
+    <div class="fg" style="margin-bottom:0;"><label>비고</label><textarea id="f-log-note" placeholder="기타 요청사항" style="min-height:60px;width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;"></textarea></div>
+    </div>`},
+  pop: {name:'폐점 POP 요청', fields:`
+    <div class="form-box"><div class="form-box-title">🪧 폐점 POP 정보</div>
+    <div class="fg-row">
+      <div class="fg"><label>POP 부착 시작일</label><input type="date" id="f-pop-start" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;"></div>
+      <div class="fg"><label>수량/사이즈</label><input type="text" id="f-pop-size" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;" placeholder="예) A2, 5장"></div>
+    </div>
+    </div>`},
+  asset: {name:'잔존가액 파일 확인', fields:`
+    <div class="form-box"><div class="form-box-title">📋 잔존가액 확인</div>
+    <div class="fg"><label>담당자 <span class="hint">(기본: 이용섭 대리)</span></label><input type="text" id="f-asset-mgr" value="이용섭 대리" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;"></div>
+    <div class="fg" style="margin-bottom:0;"><label>잔존가액 파일</label>
+    <div class="file-zone"><input type="file" id="f-asset-file" onchange="showFiles(this,'fn-asset-file')"><div class="fz-icon">📄</div><div class="fz-text">파일 첨부</div></div>
+    <div class="file-names" id="fn-asset-file"></div></div>
+    </div>`},
+  assetproc: {name:'잔존가액 처리 방법 확인', fields:`
+    <div class="form-box"><div class="form-box-title">🏗️ 처리 방법 협의</div>
+    <div class="fg"><label>협의 대상 부서</label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="radio-btn" onclick="toggleMulti(this,'assetproc-dept')">인테리어팀</button>
+      <button class="radio-btn" onclick="toggleMulti(this,'assetproc-dept')">VMD팀</button>
+    </div></div>
+    <div class="fg" style="margin-bottom:0;"><label>처리 방법 메모</label><textarea id="f-assetproc-note" placeholder="철거, 이전, 반납 등 처리 방법 기록" style="min-height:70px;width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;"></textarea></div>
+    </div>`},
+  ppt: {name:'보고용 PPT 제작 (폐점 1달전)', fields:`
+    <div class="form-box"><div class="form-box-title">📊 첨부파일</div>
+    <div class="fg"><label>관련 파일</label>
+    <div class="file-zone"><input type="file" multiple id="f-cppt-file" onchange="showFiles(this,'fn-cppt-file')"><div class="fz-icon">📊</div><div class="fz-text">참고 파일 첨부</div></div>
+    <div class="file-names" id="fn-cppt-file"></div></div>
+    <div class="fg" style="margin-bottom:0;"><label>주요 내용</label><textarea id="f-cppt-note" placeholder="PPT에 포함될 주요 내용 메모" style="min-height:70px;width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;"></textarea></div>
+    </div>`},
+  cctv: {name:'CCTV 철수 요청', fields:`
+    <div class="form-box"><div class="form-box-title">📹 CCTV 철수 정보</div>
+    <div class="fg-row">
+      <div class="fg"><label>철수 예정일</label><input type="date" id="f-ccctv-date" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;"></div>
+      <div class="fg"><label>업체</label><input type="text" id="f-ccctv-co" value="SK" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;"></div>
+    </div>
+    </div>`},
+  doc: {name:'기안 작성 / 유관부서 소통', fields:`
+    <div class="form-box"><div class="form-box-title">📝 기안 정보</div>
+    <div class="fg"><label>기안 종류</label><input type="text" id="f-cdoc-type" placeholder="예) 폐점 기안, 집기 처리 기안" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;"></div>
+    <div class="fg" style="margin-bottom:0;"><label>관련 파일</label>
+    <div class="file-zone"><input type="file" id="f-cdoc-file" onchange="showFiles(this,'fn-cdoc-file')"><div class="fz-icon">📄</div><div class="fz-text">파일 첨부</div></div>
+    <div class="file-names" id="fn-cdoc-file"></div></div>
+    </div>`},
+  ecs: {name:'ECS 공문 등록', fields:`
+    <div class="form-box"><div class="form-box-title">📄 ECS 공문 정보</div>
+    <div class="fg"><label>공문 등록 예정일</label><input type="date" id="f-ecs-date" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;"></div>
+    <div class="fg" style="margin-bottom:0;"><label>공문 파일</label>
+    <div class="file-zone"><input type="file" id="f-ecs-file" onchange="showFiles(this,'fn-ecs-file')"><div class="fz-icon">📄</div><div class="fz-text">공문 파일 첨부</div></div>
+    <div class="file-names" id="fn-ecs-file"></div></div>
+    </div>`},
+  comm: {name:'1달전 점장 소통 (일자/과정/TO-DO)', fields:`
+    <div class="form-box"><div class="form-box-title">💬 점장 소통 내용</div>
+    <div class="fg"><label>소통 예정일</label><input type="date" id="f-comm-date" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;"></div>
+    <div class="fg" style="margin-bottom:0;"><label>TO-DO 리스트</label><textarea id="f-comm-todo" placeholder="점장에게 전달할 TO-DO 리스트 작성" style="min-height:100px;width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;"></textarea></div>
+    </div>`},
+  rounding: {name:'라운딩', fields:`
+    <div class="form-box"><div class="form-box-title">🚶 라운딩 정보</div>
+    <div class="fg"><label>라운딩 유형</label>
+    <div class="radio-group">
+      <button class="radio-btn" onclick="selectRadio(this,'round-type','1달전 라운딩')">1달전 라운딩</button>
+      <button class="radio-btn" onclick="selectRadio(this,'round-type','폐점 당일 라운딩')">폐점 당일 라운딩</button>
+    </div>
+    <input type="hidden" id="round-type"></div>
+    <div class="fg" style="margin-bottom:0;"><label>라운딩 예정일</label><input type="date" id="f-round-date" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;"></div>
+    </div>`}
+};
+
+let currentOpenTask=null, currentCloseTask=null;
+
+function openForm(category, taskKey) {
+  const isOpen = category==='open';
+  const taskMap = isOpen ? OPEN_TASKS : CLOSE_TASKS;
+  const task = taskMap[taskKey];
+  if(!task) return;
+
+  if(isOpen) {
+    currentOpenTask = taskKey;
+    document.getElementById('open-form-title').textContent = task.name;
+    document.getElementById('open-specific-fields').innerHTML = task.fields;
+    document.getElementById('open-step1').style.display='none';
+    document.getElementById('open-step2').style.display='block';
+    document.getElementById('open-req-date').value = today();
+  } else {
+    currentCloseTask = taskKey;
+    document.getElementById('close-form-title').textContent = task.name;
+    document.getElementById('close-specific-fields').innerHTML = task.fields;
+    document.getElementById('close-step1').style.display='none';
+    document.getElementById('close-step2').style.display='block';
+    document.getElementById('close-req-date').value = today();
+  }
+  window.scrollTo(0,0);
+}
+
+function backToStep1(category) {
+  if(category==='open') {
+    document.getElementById('open-step1').style.display='block';
+    document.getElementById('open-step2').style.display='none';
+    currentOpenTask=null;
+  } else {
+    document.getElementById('close-step1').style.display='block';
+    document.getElementById('close-step2').style.display='none';
+    currentCloseTask=null;
+  }
+  window.scrollTo(0,0);
+}
+
+function toggleMulti(btn) {
+  btn.classList.toggle('sel');
+}
+
+function submitReq(category) {
+  if(category==='open') {
+    const manager=document.getElementById('open-manager').value.trim();
+    const store=document.getElementById('open-store').value.trim();
+    const storeType=document.getElementById('open-store-type').value;
+    const content=document.getElementById('open-content').value.trim();
+    const deadline=document.getElementById('open-deadline').value;
+    if(!manager||!store||!storeType||!content||!deadline){showToast('❗ 필수 항목을 모두 입력해주세요');return;}
+    const taskName=OPEN_TASKS[currentOpenTask]?.name||'신규오픈';
+    sheetPost({
+      action:'submit', category:'open', taskKey:currentOpenTask,
+      typeName:'🏗️ 신규오픈 — '+taskName,
+      store, manager, storeType, content, deadline,
+      reqDate:document.getElementById('open-req-date').value,
+      targetDate:document.getElementById('open-target-date').value
+    }).then(()=>{
+      backToStep1('open');
+      showToast('✅ 신청이 완료되었습니다! (구글 시트에 저장됨)');
+      setTimeout(()=>{showPage('dashboard',document.querySelectorAll('nav button')[4]);},1300);
+    }).catch(()=>{});
+
+  } else if(category==='close') {
+    const manager=document.getElementById('close-manager').value.trim();
+    const store=document.getElementById('close-store').value.trim();
+    const storeType=document.getElementById('close-store-type').value;
+    const content=document.getElementById('close-content').value.trim();
+    const deadline=document.getElementById('close-deadline').value;
+    if(!manager||!store||!storeType||!content||!deadline){showToast('❗ 필수 항목을 모두 입력해주세요');return;}
+    const taskName=CLOSE_TASKS[currentCloseTask]?.name||'폐점';
+    sheetPost({
+      action:'submit', category:'close', taskKey:currentCloseTask,
+      typeName:'🔒 폐점·이전 — '+taskName,
+      store, manager, storeType, content, deadline,
+      reqDate:document.getElementById('close-req-date').value,
+      targetDate:document.getElementById('close-target-date').value
+    }).then(()=>{
+      backToStep1('close');
+      showToast('✅ 신청이 완료되었습니다! (구글 시트에 저장됨)');
+      setTimeout(()=>{showPage('dashboard',document.querySelectorAll('nav button')[4]);},1300);
+    }).catch(()=>{});
+
+  } else if(category==='admin') {
+    const manager=document.getElementById('admin-manager').value.trim();
+    const store=document.getElementById('admin-store').value.trim();
+    const storeType=document.getElementById('admin-store-type').value;
+    const sub=document.getElementById('admin-sub').value;
+    const content=document.getElementById('admin-content').value.trim();
+    const deadline=document.getElementById('admin-deadline').value;
+    if(!manager||!store||!storeType||!sub||!content||!deadline){showToast('❗ 필수 항목을 모두 입력해주세요');return;}
+    sheetPost({
+      action:'submit', category:'admin', taskKey:'admin',
+      typeName:'💻 전산·행정 — '+sub,
+      store, manager, storeType, content, deadline,
+      reqDate:document.getElementById('admin-req-date').value,
+      targetDate:''
+    }).then(()=>{
+      showToast('✅ 신청이 완료되었습니다! (구글 시트에 저장됨)');
+      setTimeout(()=>{showPage('dashboard',document.querySelectorAll('nav button')[4]);},1300);
+    }).catch(()=>{});
+  }
+}
+
+// ===== 대시보드 =====
+function setDF(f,btn){dashFilter=f;document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');renderDashboard();}
+
+function renderDashboard() {
+  const list=document.getElementById('task-list');
+  list.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);font-size:14px;">⏳ 데이터 불러오는 중...</div>';
+
+  sheetGet(function(res) {
+    const tasks = (res && res.tasks) ? res.tasks : [];
+    _renderDashboardUI(tasks);
+  });
+}
+
+function _renderDashboardUI(tasks) {
+  const pending=tasks.filter(t=>t.status==='pending').length;
+  const progress=tasks.filter(t=>t.status==='progress').length;
+  const done=tasks.filter(t=>t.status==='done').length;
+
+  const today2=new Date(); today2.setHours(0,0,0,0);
+  const urgent=tasks.filter(t=>{
+    if(!t.deadline||t.status==='done') return false;
+    const d=new Date(t.deadline); d.setHours(0,0,0,0);
+    return (d-today2)/86400000<=3;
+  }).length;
+
+  document.getElementById('dash-stats').innerHTML=`
+    <div class="stat-badge"><div class="val" style="color:var(--warning)">${pending}</div><div class="lbl">⏳ 대기중</div></div>
+    <div class="stat-badge"><div class="val" style="color:var(--info)">${progress}</div><div class="lbl">🔄 처리중</div></div>
+    <div class="stat-badge"><div class="val" style="color:var(--success)">${done}</div><div class="lbl">✅ 완료</div></div>
+    <div class="stat-badge"><div class="val" style="color:var(--danger)">${urgent}</div><div class="lbl">🚨 기한 임박</div></div>`;
+
+  let filtered=tasks;
+  if(dashFilter==='pending') filtered=tasks.filter(t=>t.status==='pending');
+  else if(dashFilter==='progress') filtered=tasks.filter(t=>t.status==='progress');
+  else if(dashFilter==='done') filtered=tasks.filter(t=>t.status==='done');
+  else if(dashFilter==='open') filtered=tasks.filter(t=>t.category==='open');
+  else if(dashFilter==='close') filtered=tasks.filter(t=>t.category==='close');
+  else if(dashFilter==='admin') filtered=tasks.filter(t=>t.category==='admin');
+
+  const list=document.getElementById('task-list');
+  if(!filtered.length){
+    list.innerHTML='<div class="empty-state"><div class="es-icon">📭</div><p>신청 내역이 없습니다</p></div>';
+    return;
+  }
+
+  const groups={};
+  filtered.forEach(t=>{
+    const d=(t.createdAt||'').slice(0,10)||'날짜없음';
+    if(!groups[d]) groups[d]=[];
+    groups[d].push(t);
+  });
+
+  const days=['일','월','화','수','목','금','토'];
+  list.innerHTML=Object.entries(groups).sort((a,b)=>b[0].localeCompare(a[0])).map(([date,items])=>{
+    const dd=new Date(date);
+    const label=`${date} (${days[dd.getDay()]})`;
+    return `<div style="font-size:12px;font-weight:700;color:var(--muted);margin:8px 0 4px;padding-left:4px;">📅 ${label}</div>`
+    + items.map(t=>{
+      const todayMs=new Date(); todayMs.setHours(0,0,0,0);
+      const dlMs=t.deadline?new Date(t.deadline):null;
+      const dlDays=dlMs?Math.round((dlMs-todayMs)/86400000):null;
+      const dlColor=dlDays!=null&&dlDays<=3&&t.status!=='done'?'color:var(--danger);font-weight:700':'color:var(--muted)';
+      const dotCls=t.category==='open'?'dot-open':t.category==='close'?'dot-close':'dot-admin';
+      const tid=String(t.id).replace(/"/g,'');
+      return `<div class="task-item">
+        <div class="ti-dot ${dotCls}" style="margin-top:4px;"></div>
+        <div class="ti-left">
+          <div class="ti-store">${t.store||''} <span style="font-size:12px;font-weight:400;color:var(--muted)">· ${t.storeType||''}</span></div>
+          <div class="ti-type">${t.typeName||''} · 담당: ${t.manager||''}</div>
+          <div class="ti-detail">${t.content||''}${t.deadline?` <span style="${dlColor}"> | 기한: ${t.deadline}${dlDays!=null?' (D-'+dlDays+')':''}</span>`:''}</div>
+        </div>
+        <div class="ti-right">
+          <select class="status-sel" onchange="updateStatus('${tid}',this.value)">
+            <option value="pending" ${t.status==='pending'?'selected':''}>⏳ 대기</option>
+            <option value="progress" ${t.status==='progress'?'selected':''}>🔄 처리중</option>
+            <option value="done" ${t.status==='done'?'selected':''}>✅ 완료</option>
+          </select>
+        </div>
+      </div>`;
+    }).join('');
+  }).join('');
+}
+
+function updateStatus(id, status) {
+  sheetPost({ action:'update', id:id, status:status })
+    .then(()=>{ showToast('상태가 업데이트되었습니다'); renderDashboard(); })
+    .catch(()=>{});
+}
+
+function clearDone() {
+  if(!confirm('완료된 항목을 모두 삭제할까요?')) return;
+  sheetPost({ action:'clear' })
+    .then(()=>{ showToast('🗑️ 완료 항목이 정리되었습니다'); renderDashboard(); })
+    .catch(()=>{});
+}
+</script>
+</body>
+</html>          <div class="ti-store">${t.store||''} <span style="font-size:12px;font-weight:400;color:var(--muted)">· ${t.storeType||''}</span></div>
+          <div class="ti-type">${t.typeName||''} · 담당: ${t.manager||''}</div>
+          <div class="ti-detail">${t.content||''}${t.deadline?` <span style="${dlColor}"> | 기한: ${t.deadline}${dlDays!=null?' (D-'+dlDays+')':''}</span>`:''}</div>
+        </div>
+        <div class="ti-right">
+          <select class="status-sel" onchange="updateStatus('${tid}',this.value)">
+            <option value="pending" ${t.status==='pending'?'selected':''}>⏳ 대기</option>
+            <option value="progress" ${t.status==='progress'?'selected':''}>🔄 처리중</option>
+            <option value="done" ${t.status==='done'?'selected':''}>✅ 완료</option>
+          </select>
+        </div>
+      </div>`;
+    }).join('');
+  }).join('');
+}
+
+function updateStatus(id, status) {
+  sheetPost({ action:'update', id:id, status:status })
+    .then(()=>{ showToast('상태가 업데이트되었습니다'); renderDashboard(); })
+    .catch(()=>{});
+}
+
+function clearDone() {
+  if(!confirm('완료된 항목을 모두 삭제할까요?')) return;
+  sheetPost({ action:'clear' })
+    .then(()=>{ showToast('🗑️ 완료 항목이 정리되었습니다'); renderDashboard(); })
+    .catch(()=>{});
+}
+</script>
+</body>
+</html>
