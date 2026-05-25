@@ -664,7 +664,7 @@ function buildChartSVG(m){
   var W=940,H=190,PL=60,PR=20,PT=15,PB=32;
   var cW=W-PL-PR, cH=H-PT-PB;
 
-  // 25년 데이터 기반 동적 Y축 (최저/중간/최고 → 100 단위 반올림)
+  // 25년 데이터 기반 동적 Y축 (최저/중간/최고 -> 100 단위 반올림)
   var d25=(m['2025']&&m['2025'].months)?m['2025'].months.filter(function(x){return x!=null&&x>0;}):[];
   var YLEVELS, YMAX;
   if(d25.length>0){
@@ -692,18 +692,15 @@ function buildChartSVG(m){
     {yr:'2023',color:'#ccc',sw:1.5}
   ];
   var svg='<svg viewBox="0 0 '+W+' '+H+'" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;">';
-  // Y gridlines
   YLEVELS.forEach(function(lv){
     var y=yp(lv);
     svg+='<line x1="'+PL+'" y1="'+y+'" x2="'+(W-PR)+'" y2="'+y+'" stroke="#eaecf2" stroke-width="1"/>';
     svg+='<text x="'+(PL-5)+'" y="'+(y+4)+'" text-anchor="end" font-size="10" fill="#aaa">'+lv+'백만</text>';
   });
-  // X axis
   svg+='<line x1="'+PL+'" y1="'+(PT+cH)+'" x2="'+(W-PR)+'" y2="'+(PT+cH)+'" stroke="#ddd" stroke-width="1"/>';
   for(var i=0;i<12;i++){
     svg+='<text x="'+xp(i)+'" y="'+(H-6)+'" text-anchor="middle" font-size="10" fill="#aaa">'+(i+1)+'월</text>';
   }
-  // Lines
   SERIES.forEach(function(s){
     var d=(m[s.yr]&&m[s.yr].months)?m[s.yr].months:[];
     var path='',hasPrev=false;
@@ -750,7 +747,26 @@ function buildMonthlyTable(m){
     var rowStyle=isBold?'font-weight:700;color:#1a2e4a;':'color:#555;';
     html+='<tr class="mtr-data"><td style="'+rowStyle+'">'+yr+'</td>';
     html+='<td style="'+rowStyle+'">'+fmtV(d.avg)+'</td><td style="'+rowStyle+'">'+fmtV(d.total)+'</td>';
-    for(var i=
+    for(var i=0;i<12;i++) html+='<td style="'+rowStyle+'">'+fmtV(ms[i])+'</td>';
+    html+='</tr>';
+    if(yi<YEARS.length-1){
+      var nextYr=YEARS[yi+1];
+      var nd=m[nextYr]||{};
+      var nms=nd.months||new Array(12).fill(null);
+      html+='<tr class="mtr-pct"><td style="color:#888;font-size:11px;">전년(%)</td>';
+      html+='<td>'+pctHtml(calcPct(d.avg,nd.avg))+'</td><td>'+pctHtml(calcPct(d.total,nd.total))+'</td>';
+      for(var i=0;i<12;i++) html+='<td>'+pctHtml(calcPct(ms[i],nms[i]))+'</td>';
+      html+='</tr>';
+    }
+  }
+  html+='</tbody></table>';
+  return html;
+}
+
+function closeModal(){
+  document.getElementById('modal-overlay').classList.remove('open');
+}
+
 function showToast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg;t.classList.add('show');
