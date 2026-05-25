@@ -550,16 +550,16 @@ function buildSummary(){
     const trCls=isEbiz?'tr-ebiz':(r.kind==='total'?'tr-total':(isBalance?'tr-balance':(isAdult?'tr-adult':(r.kind==='section'?'tr-section':'tr-sub'))));
     const tdCls=r.kind==='sub'?'td-sub':'td-label';
     const prefix=r.kind==='sub'?'└ ':'';
-    const cnt=r.store_cnt!==null&&r.store_cnt!==undefined&&r.store_cnt!=='-'?String(r.store_cnt):(r.store_cnt==='-'?'-':'');
-    const chg=r.store_change!=null?` <span class="${r.store_change>=0?'cnt-up':'cnt-dn'}">(${r.store_change>=0?'+':''}${r.store_change})</span>`:'';
+    const cnt=r.store_count!==null&&r.store_count!==undefined&&r.store_count!=='-'?String(r.store_count):(r.store_count==='-'?'-':'');
+    const chg=r.store_chg!=null?` <span class="${r.store_chg>=0?'cnt-up':'cnt-dn'}">(${r.store_chg>=0?'+':''}${r.store_chg})</span>`:'';
     return `<tr class="${trCls}">
       <td class="${tdCls}">${prefix}${r.label}</td>
       <td>${cnt}${chg}</td>
-      <td style="font-weight:700;">${r.w_result}</td>
+      <td style="font-weight:700;">${r.w_actual||'-'}</td>
       <td>${fa(r.w_achieve)}</td>
       <td>${pc(r.w_growth)}</td>
       <td>${pc(r.w_same_growth)}</td>
-      <td style="font-weight:700;">${r.m_result}</td>
+      <td style="font-weight:700;">${r.m_actual||'-'}</td>
       <td>${fa(r.m_achieve)}</td>
       <td>${pc(r.m_growth)}</td>
       <td>${pc(r.m_same_growth)}</td>
