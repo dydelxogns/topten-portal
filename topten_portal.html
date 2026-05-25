@@ -81,7 +81,7 @@ nav button.active{color:#fff;border-bottom-color:var(--accent);background:rgba(2
 .kpi-cell .k-val{font-size:14px;font-weight:800;line-height:1;}
 .kpi-cell .k-lbl{font-size:10px;color:var(--muted);margin-top:3px;}
 .positive{color:var(--success);}.negative{color:var(--danger);}.neutral{color:var(--info);}
-.kpi-py{color:var(--accent2);}.kpi-avg{color:#7f8c8d;}
+.kpi-py{color:var(--accent2);}.kpi-avg{color:var(--danger);}
 
 /* 모달 */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;padding:20px;}
@@ -653,6 +653,12 @@ function filterStores(){
     const days=(new Date(s.contract_end)-now)/86400000;
     return days>=0&&days<=90;
   }).length;
+  // 랭크 오름차순 정렬 (rank 없는 매장은 맨 뒤)
+  filtered.sort((a,b)=>{
+    const ra=a.rank!=null?a.rank:9999;
+    const rb=b.rank!=null?b.rank:9999;
+    return ra-rb;
+  });
   document.getElementById('st-total').textContent=PERF_STORES.length;
   document.getElementById('st-filtered').textContent=filtered.length;
   document.getElementById('st-soon').textContent=soon;
