@@ -472,6 +472,7 @@ function colorClass(v){
 
 // ===== 로그인 =====
 const LS_KEY='topten_autologin';
+let expiryFilterActive=false;  // 자동로그인 IIFE보다 먼저 선언 필수
 function enterApp(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app').style.display='block';
@@ -508,7 +509,6 @@ function showPage(name,btn){
 }
 
 // ===== 앱 초기화 =====
-let expiryFilterActive=false;
 function initApp(){
   buildSummary();
   buildFilters();
