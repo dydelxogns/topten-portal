@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TOP10 업무신청 포털</title>
+<style>
+:root{
+  --bg:#f4f6fb;--card:#fff;--accent:#e8375a;--accent2:#2e75b6;
+  --success:#27ae60;--danger:#e74c3c;--warning:#f39c12;--info:#2980b9;
+  --muted:#8899aa;--border:#e0e6ef;--text:#1a2436;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* ── 로그인 ── */
+#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(135deg,#1a2e4a 0%,#2e75b6 100%);}
+.login-box{background:#fff;border-radius:20px;padding:48px 40px;width:360px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.25);}
+.login-logo{font-size:28px;font-weight:900;color:#1a2e4a;margin-bottom:6px;}
+.login-logo span{color:var(--accent);}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:32px;}
+.login-box input{width:100%;border:2px solid var(--border);border-radius:10px;padding:13px 16px;font-size:15px;outline:none;font-family:inherit;transition:border-color .2s;margin-bottom:12px;}
+.login-box input:focus{border-color:var(--accent2);}
+.login-btn{width:100%;background:var(--accent2);color:#fff;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;}
+.login-btn:hover{background:#1a5fa0;}
+.login-err{color:var(--accent);font-size:13px;margin-top:8px;display:none;}
+
+/* ── 앱 ── */
+#app{display:none;}
+header{background:#1a2e4a;color:#fff;height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.3);}
+.logo{font-size:18px;font-weight:900;}.logo span{color:var(--accent);}
+.header-right{display:flex;gap:10px;align-items:center;}
+.logout-btn,.settings-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:8px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .2s;}
+.logout-btn:hover,.settings-btn:hover{background:rgba(255,255,255,.2);}
+
+nav{background:var(--accent2);display:flex;overflow-x:auto;position:sticky;top:56px;z-index:99;}
+nav button{background:none;border:none;color:rgba(255,255,255,.7);padding:13px 20px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap;border-bottom:3px solid transparent;font-family:inherit;}
+nav button:hover{color:#fff;background:rgba(255,255,255,.08);}
+nav button.active{color:#fff;border-bottom-color:var(--accent);background:rgba(255,255,255,.12);}
+
+.page{display:none;padding:24px;max-width:900px;margin:0 auto;}
+.page.active{display:block;}
+
+/* ── 설정 모달 ── */
+.setting-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;}
+.setting-overlay.open{display:flex;}
+.setting-box{background:#fff;border-radius:16px;padding:32px;width:520px;max-width:95vw;}
+.setting-title{font-size:18px;font-weight:800;margin-bottom:16px;}
+.setting-box label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;}
+.setting-box input{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;outline:none;font-family:inherit;margin-bottom:16px;}
+.setting-box input:focus{border-color:var(--accent2);}
+.setting-note{font-size:12px;color:var(--muted);margin-bottom:20px;line-height:1.6;}
+.setting-btn-row{display:flex;gap:10px;justify-content:flex-end;}
+.setting-save{background:var(--accent2);color:#fff;border:none;border-radius:8px;padding:10px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+.setting-cancel{background:#f0f2ff;color:var(--accent2);border:none;border-radius:8px;padding:10px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;}
+
+/* ── 폼 공통 ── */
+.req-wrap{max-width:780px;margin:0 auto;}
+.step-back{background:none;border:1.5px solid var(--border);border-radius:8px;padding:7px 14px;font-size:13px;cursor:pointer;font-family:inherit;transition:all .2s;}
+.step-back:hover{border-color:var(--accent2);color:var(--accent2);}
+.step-title{font-size:20px;font-weight:700;}
+.step-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+.task-select-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:8px;}
+.task-select-card{background:var(--card);border:2px solid var(--border);border-radius:12px;padding:18px 16px;cursor:pointer;transition:all .2s;font-family:inherit;text-align:left;width:100%;}
+.task-select-card:hover{border-color:var(--accent2);background:#f0f2ff;transform:translateY(-1px);}
+.task-select-card .tc-num{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px;}
+.task-select-card .tc-icon{font-size:24px;margin-bottom:6px;}
+.task-select-card .tc-name{font-size:14px;font-weight:700;line-height:1.4;}
+.task-select-card .tc-timing{font-size:11px;color:var(--accent2);margin-top:4px;font-weight:600;}
+.form-box{background:var(--card);border-radius:12px;padding:22px;border:1px solid var(--border);box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:14px;}
+.form-box-title{font-size:14px;font-weight:700;color:var(--accent2);margin-bottom:14px;}
+.fg{margin-bottom:16px;}.fg label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;}
+.fg label .req{color:var(--accent);}.fg label .hint{font-size:11px;color:var(--muted);font-weight:400;margin-left:4px;}
+.fg input,.fg select,.fg textarea{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;outline:none;font-family:inherit;transition:border-color .2s;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--accent2);}
+.fg textarea{min-height:80px;resize:vertical;}
+.fg-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.radio-group{display:flex;gap:10px;flex-wrap:wrap;}
+.radio-btn{border:2px solid var(--border);border-radius:8px;padding:8px 18px;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s;background:#fff;font-family:inherit;}
+.radio-btn:hover{border-color:var(--accent2);}.radio-btn.sel{border-color:var(--accent);background:#fff0f3;color:var(--accent);}
+.btn-submit{width:100%;background:var(--accent);color:#fff;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:4px;transition:background .2s;}
+.btn-submit:hover{background:#c73652;}
+.page-title{font-size:20px;font-weight:700;margin-bottom:20px;}
+
+/* ── 대시보드 ── */
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.filter-btn{border:1.5px solid var(--border);border-radius:20px;padding:6px 16px;font-size:12px;font-weight:600;cursor:pointer;background:#fff;font-family:inherit;transition:all .2s;}
+.filter-btn:hover{border-color:var(--accent2);}.filter-btn.active{background:var(--accent2);color:#fff;border-color:var(--accent2);}
+.stats-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px;}
+.stat-badge{background:var(--card);border-radius:12px;padding:14px 20px;text-align:center;border:1px solid var(--border);min-width:80px;}
+.stat-badge .val{font-size:22px;font-weight:800;}.stat-badge .lbl{font-size:11px;color:var(--muted);margin-top:3px;}
+.task-item{display:flex;gap:12px;background:var(--card);border-radius:10px;padding:14px;border:1px solid var(--border);margin-bottom:8px;align-items:flex-start;}
+.ti-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.dot-open{background:var(--info);}.dot-close{background:var(--danger);}.dot-admin{background:var(--success);}
+.ti-left{flex:1;}.ti-store{font-size:14px;font-weight:700;margin-bottom:3px;}
+.ti-type{font-size:12px;color:var(--accent2);font-weight:600;margin-bottom:3px;}.ti-detail{font-size:12px;color:var(--muted);}
+.ti-right{flex-shrink:0;}
+.status-sel{border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;font-family:inherit;outline:none;cursor:pointer;}
+.empty-state{text-align:center;padding:60px 20px;color:var(--muted);}
+.empty-state .es-icon{font-size:48px;margin-bottom:12px;}
+.dash-top-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.clear-btn{border:1.5px solid var(--border);border-radius:8px;padding:7px 13px;font-size:12px;cursor:pointer;background:#fff;font-family:inherit;}
+
+/* ── URL 없을때 배너 ── */
+.no-url-banner{background:#fff3cd;border:1.5px solid #ffc107;border-radius:12px;padding:16px 20px;margin-bottom:20px;font-size:13px;display:flex;align-items:center;gap:12px;}
+.no-url-banner .nub-icon{font-size:20px;}.no-url-banner a{color:var(--accent2);font-weight:700;cursor:pointer;text-decoration:underline;}
+
+/* ── 토스트 ── */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%) translateY(80px);background:#1a2e4a;color:#fff;border-radius:10px;padding:12px 24px;font-size:14px;font-weight:600;opacity:0;transition:all .35s;z-index:9999;pointer-events:none;}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
+</style>
+</head>
+<body>
+
+<!-- ══════ 로그인 ══════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">TOP<span>10</span></div>
+    <div class="login-sub">업무신청 포털</div>
+    <input type="password" id="pw-input" placeholder="비밀번호를 입력하세요" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">로그인</button>
+    <div class="login-err" id="login-err">❌ 비밀번호가 틀렸습니다</div>
+  </div>
+</div>
+
+<!-- ══════ 앱 ══════ -->
+<div id="app">
+<header>
+  <div class="logo">TOP<span>10</span> 업무신청 포털</div>
+  <div class="header-right">
+    <button class="settings-btn" onclick="openSettings()">⚙️ 설정</button>
+    <button class="logout-btn" onclick="doLogout()">로그아웃</button>
+  </div>
+</header>
+<nav>
+  <button class="active" onclick="showPage('open',this)">🏗️ 신규 오픈 신청</button>
+  <button onclick="showPage('close',this)">🔒 폐점·이전 신청</button>
+  <button onclick="showPage('admin',this)">💻 전산·행정 신청</button>
+  <button onclick="showPage('dashboard',this)">📋 할 일 대시보드</button>
+</nav>
+
+<!-- 신규 오픈 신청 -->
+<div id="page-open" class="page active">
+  <div class="req-wrap">
+    <div id="open-step1">
+      <div class="page-title">🏗️ 신규 오픈 신청</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">업무 유형을 선택하세요</div>
+      <div class="task-select-grid" id="open-task-grid"></div>
+    </div>
+    <div id="open-step2" style="display:none;">
+      <div class="step-header">
+        <button class="step-back" onclick="backToStep1('open')">← 뒤로</button>
+        <div class="step-title" id="open-step2-title"></div>
+      </div>
+      <div class="form-box">
+        <div class="form-box-title">📋 공통 정보</div>
+        <div class="fg"><label>구분 <span class="req">*</span></label>
+          <div class="radio-group">
+            <button class="radio-btn" onclick="selectRadio(this,'open-store-type','가두직영')">가두직영</button>
+            <button class="radio-btn" onclick="selectRadio(this,'open-store-type','유통사')">유통사</button>
+          </div>
+          <input type="hidden" id="open-store-type">
+        </div>
+        <div class="fg-row">
+          <div class="fg"><label>담당자 이름 <span class="req">*</span></label><input id="open-manager" placeholder="이름 입력"></div>
+          <div class="fg"><label>매장명 <span class="req">*</span></label>
+            <input id="open-store" list="open-store-dl" placeholder="매장명 검색">
+            <datalist id="open-store-dl"></datalist>
+          </div>
+        </div>
+        <div class="fg-row">
+          <div class="fg"><label>신청 날짜</label><input type="date" id="open-req-date"></div>
+          <div class="fg"><label>오픈 예정일</label><input type="date" id="open-target-date"></div>
+        </div>
+        <div class="fg"><label>요청 기한 <span class="req">*</span></label><input type="date" id="open-deadline"></div>
+        <div class="fg"><label>요청 내용 <span class="req">*</span></label><textarea id="open-content" placeholder="요청 내용을 입력하세요"></textarea></div>
+      </div>
+      <button class="btn-submit" onclick="submitReq('open')">✅ 신청 제출하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 폐점·이전 신청 -->
+<div id="page-close" class="page">
+  <div class="req-wrap">
+    <div id="close-step1">
+      <div class="page-title">🔒 폐점·이전 신청</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:20px;">업무 유형을 선택하세요</div>
+      <div class="task-select-grid" id="close-task-grid"></div>
+    </div>
+    <div id="close-step2" style="display:none;">
+      <div class="step-header">
+        <button class="step-back" onclick="backToStep1('close')">← 뒤로</button>
+        <div class="step-title" id="close-step2-title"></div>
+      </div>
+      <div class="form-box">
+        <div class="form-box-title">📋 공통 정보</div>
+        <div class="fg"><label>구분 <span class="req">*</span></label>
+          <div class="radio-group">
+            <button class="radio-btn" onclick="selectRadio(this,'close-store-type','가두직영')">가두직영</button>
+            <button class="radio-btn" onclick="selectRadio(this,'close-store-type','유통사')">유통사</button>
+          </div>
+          <input type="hidden" id="close-store-type">
+        </div>
+        <div class="fg-row">
+          <div class="fg"><label>담당자 이름 <span class="req">*</span></label><input id="close-manager" placeholder="이름 입력"></div>
+          <div class="fg"><label>매장명 <span class="req">*</span></label>
+            <input id="close-store" list="close-store-dl" placeholder="매장명 검색">
+            <datalist id="close-store-dl"></datalist>
+          </div>
+        </div>
+        <div class="fg-row">
+          <div class="fg"><label>신청 날짜</label><input type="date" id="close-req-date"></div>
+          <div class="fg"><label>폐점 예정일</label><input type="date" id="close-target-date"></div>
+        </div>
+        <div class="fg"><label>요청 기한 <span class="req">*</span></label><input type="date" id="close-deadline"></div>
+        <div class="fg"><label>요청 내용 <span class="req">*</span></label><textarea id="close-content" placeholder="요청 내용을 입력하세요"></textarea></div>
+      </div>
+      <button class="btn-submit" onclick="submitReq('close')">✅ 신청 제출하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 전산·행정 신청 -->
+<div id="page-admin" class="page">
+  <div class="req-wrap">
+    <div class="page-title">💻 전산·행정 신청</div>
+    <div class="form-box">
+      <div class="form-box-title">📋 신청 정보</div>
+      <div class="fg"><label>업무 구분 <span class="req">*</span></label>
+        <select id="admin-sub">
+          <option value="">선택하세요</option>
+          <option>웍스(POS) 신청</option>
+          <option>인터넷/전화 개통</option>
+          <option>CCTV 설치/철수</option>
+          <option>전산 장비 교체</option>
+          <option>기안 작성</option>
+          <option>ECS 공문</option>
+          <option>보고서 작성</option>
+          <option>기타 행정</option>
+        </select>
+      </div>
+      <div class="fg"><label>구분 <span class="req">*</span></label>
+        <div class="radio-group">
+          <button class="radio-btn" onclick="selectRadio(this,'admin-store-type','가두직영')">가두직영</button>
+          <button class="radio-btn" onclick="selectRadio(this,'admin-store-type','유통사')">유통사</button>
+        </div>
+        <input type="hidden" id="admin-store-type">
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label>담당자 이름 <span class="req">*</span></label><input id="admin-manager" placeholder="이름 입력"></div>
+        <div class="fg"><label>매장명 <span class="req">*</span></label>
+          <input id="admin-store" list="admin-store-dl" placeholder="매장명 검색">
+          <datalist id="admin-store-dl"></datalist>
+        </div>
+      </div>
+      <div class="fg-row">
+        <div class="fg"><label>신청 날짜</label><input type="date" id="admin-req-date"></div>
+        <div class="fg"><label>요청 기한 <span class="req">*</span></label><input type="date" id="admin-deadline"></div>
+      </div>
+      <div class="fg"><label>요청 내용 <span class="req">*</span></label><textarea id="admin-content" placeholder="요청 내용을 입력하세요"></textarea></div>
+    </div>
+    <button class="btn-submit" onclick="submitReq('admin')">✅ 신청 제출하기</button>
+  </div>
+</div>
+
+<!-- 할 일 대시보드 -->
+<div id="page-dashboard" class="page">
+  <div class="dash-top-row">
+    <div class="page-title" style="margin-bottom:0;">📋 할 일 대시보드</div>
+    <div style="display:flex;gap:8px;">
+      <button class="clear-btn" onclick="loadDashboard()">🔄 새로고침</button>
+      <button class="clear-btn" onclick="clearDone()">🗑️ 완료 정리</button>
+    </div>
+  </div>
+  <div class="stats-row" id="dash-stats"></div>
+  <div class="filter-row">
+    <button class="filter-btn active" onclick="setDF('all',this)">전체</button>
+    <button class="filter-btn" onclick="setDF('pending',this)">⏳ 대기중</button>
+    <button class="filter-btn" onclick="setDF('progress',this)">🔄 처리중</button>
+    <button class="filter-btn" onclick="setDF('done',this)">✅ 완료</button>
+    <button class="filter-btn" onclick="setDF('open',this)">🏗️ 신규오픈</button>
+    <button class="filter-btn" onclick="setDF('close',this)">🔒 폐점</button>
+    <button class="filter-btn" onclick="setDF('admin',this)">💻 전산행정</button>
+  </div>
+  <div id="task-list"></div>
+</div>
+
+</div><!-- /app -->
+
+<!-- 설정 모달 -->
+<div class="setting-overlay" id="setting-overlay" onclick="if(event.target===this)closeSettings()">
+  <div class="setting-box">
+    <div class="setting-title">⚙️ Apps Script 연동 설정</div>
+    <label>Google Apps Script 웹 앱 URL</label>
+    <input id="script-url-input" placeholder="https://script.google.com/macros/s/..." type="url">
+    <div class="setting-note">
+      1. Google Sheets 열기 → 확장 프로그램 → Apps Script<br>
+      2. 제공된 코드 붙여넣기 → 저장(Ctrl+S)<br>
+      3. 배포 → 새 배포 → 웹 앱 → 액세스: 모든 사용자<br>
+      4. 생성된 URL을 위에 붙여넣기 후 저장
+    </div>
+    <div class="setting-btn-row">
+      <button class="setting-cancel" onclick="closeSettings()">취소</button>
+      <button class="setting-save" onclick="saveSettings()">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════
+//  매장 데이터
+// ══════════════════════════════════════
+const STORES = [{"id": "MFA091", "name": "11번가", "manager": ""}, {"id": "MFB062", "name": "29CM", "manager": ""}, {"id": "MBE076", "name": "AK 금정", "manager": "엄금란"}, {"id": "MCE103", "name": "AK 수원", "manager": "조남오"}, {"id": "MBE077", "name": "B)AK 금정", "manager": ""}, {"id": "MBE117", "name": "B)AK 기흥", "manager": "권나영"}, {"id": "MCE119", "name": "B)AK 분당", "manager": "권나영"}, {"id": "MEE043", "name": "B)AK평택[미입점]", "manager": "권나영"}, {"id": "MEO002", "name": "B)LF광양[미입점]", "manager": "권나영"}, {"id": "MCE051", "name": "B)NC 동수원", "manager": "권나영"}, {"id": "MCM031", "name": "B)NC 부산대", "manager": "권나영"}, {"id": "MCA060", "name": "B)NC 불광", "manager": "권나영"}, {"id": "MCB038", "name": "B)NC 송파", "manager": "권나영"}, {"id": "MCI016", "name": "B)NC 유성", "manager": "권나영"}, {"id": "MCE106", "name": "B)NC 일산", "manager": "권나영"}, {"id": "MCP018", "name": "B)NC 충장", "manager": "권나영"}, {"id": "MCE122", "name": "B)NC부천", "manager": "권나영"}, {"id": "MCI020", "name": "B)대전 패션아일랜드", "manager": "권나영"}, {"id": "MBE111", "name": "B)롯데 기흥아울렛", "manager": "권나영"}, {"id": "MCE113", "name": "B)롯데 동탄", "manager": "권나영"}, {"id": "MCK016", "name": "B)롯데마트 구미", "manager": "권나영"}, {"id": "MCL016", "name": "B)롯데마트 양덕", "manager": "권나영"}, {"id": "MCF016", "name": "B)롯데마트 원주", "manager": "권나영"}, {"id": "MCL046", "name": "B)롯데마트 통영", "manager": ""}, {"id": "MBE081", "name": "B)롯데몰 수지", "manager": ""}, {"id": "MBA052", "name": "B)롯데몰 은평점[미입점]", "manager": ""}, {"id": "MCN011", "name": "B)롯마 군산", "manager": ""}, {"id": "MCK025", "name": "B)롯마 김천", "manager": "권나영"}, {"id": "MCH025", "name": "B)롯마 서산", "manager": ""}, {"id": "MCE070", "name": "B)롯마 안산", "manager": ""}, {"id": "MCQ003", "name": "B)롯마 제주", "manager": "권나영"}, {"id": "MCE088", "name": "B)롯마 주엽", "manager": "권나영"}, {"id": "MCG011", "name": "B)롯마 충주", "manager": "권나영"}, {"id": "MCM032", "name": "B)롯백 광복", "manager": "권나영"}, {"id": "MCJ024", "name": "B)롯백 대구", "manager": ""}, {"id": "MCA048", "name": "B)롯백 미아", "manager": "권나영"}, {"id": "MCM037", "name": "B)롯백 부산본점", "manager": "권나영"}, {"id": "MCA053", "name": "B)롯백 영등포", "manager": "권나영"}, {"id": "MCB035", "name": "B)롯백 잠실", "manager": ""}, {"id": "MCA056", "name": "B)마리오 아울렛", "manager": "권나영"}, {"id": "MCK028", "name": "B)모다 김천구미", "manager": "권나영"}, {"id": "MCI008", "name": "B)모다아울렛 대전", "manager": "권나영"}, {"id": "MBE102", "name": "B)벨라시타", "manager": "권나영"}, {"id": "MBC018", "name": "B)스퀘어원인천", "manager": "권나영"}, {"id": "MCE074", "name": "B)신백 의정부", "manager": "권나영"}, {"id": "MCA041", "name": "B)엔터 강변", "manager": "권나영"}, {"id": "MCP015", "name": "B)이마트 광산", "manager": "권나영"}, {"id": "MCI019", "name": "B)이마트 둔산", "manager": "권나영"}, {"id": "MCA047", "name": "B)이마트 묵동", "manager": "권나영"}, {"id": "MBH020", "name": "B)이마트 서북", "manager": ""}, {"id": "MCH027", "name": "B)이마트 서산", "manager": ""}, {"id": "MCE077", "name": "B)이마트 용인", "manager": "권나영"}, {"id": "MCF014", "name": "B)이마트 원주", "manager": "권나영"}, {"id": "MEA024", "name": "B)이마트 월계[미입점]", "manager": ""}, {"id": "MCD019", "name": "B)이마트 의정부", "manager": "권나영"}, {"id": "MCG012", "name": "B)이마트 충주", "manager": "권나영"}, {"id": "MCE082", "name": "B)이마트 평촌", "manager": ""}, {"id": "MCD016", "name": "B)이마트 포천", "manager": ""}, {"id": "MBK019", "name": "B)이마트 포항", "manager": "권나영"}, {"id": "MCP020", "name": "B)이마트봉선", "manager": "권나영"}, {"id": "MBQ008", "name": "B)이마트서귀포", "manager": "권나영"}, {"id": "MEM053", "name": "B)커넥트 현대[미입점]", "manager": ""}, {"id": "MCE109", "name": "B)타임빌라스 수원", "manager": "권나영"}, {"id": "MBM029", "name": "B)트레이더스 연산", "manager": "권나영"}, {"id": "MBF008", "name": "B)홈플 강릉", "manager": "권나영"}, {"id": "MBB024", "name": "B)홈플 강서", "manager": ""}, {"id": "MBE080", "name": "B)홈플 부천", "manager": ""}, {"id": "MBJ017", "name": "B)홈플 성서", "manager": "권나영"}, {"id": "MBC016", "name": "B)홈플 송도", "manager": "권나영"}, {"id": "MBB011", "name": "B)홈플 영등포", "manager": "권나영"}, {"id": "MBE072", "name": "B)홈플 파주", "manager": ""}, {"id": "MBB030", "name": "B)홈플러스 금천", "manager": ""}, {"id": "MBC019", "name": "B)홈플러스 인하", "manager": "권나영"}, {"id": "MBN003", "name": "B)홈플러스 전주 효자", "manager": "권나영"}, {"id": "MFB002", "name": "GS SHOP(E-BIZ)", "manager": ""}, {"id": "MCM029", "name": "NC 덕천", "manager": "이용수"}, {"id": "MCE008", "name": "NC 부천", "manager": ""}, {"id": "MCM002", "name": "NC 서면점", "manager": ""}, {"id": "MCE069", "name": "NC 수원터미널", "manager": "조남오"}, {"id": "MCB037", "name": "NC 신구로", "manager": "엄금란"}, {"id": "MCC023", "name": "NC 인천", "manager": "공석"}, {"id": "MCL020", "name": "NC 창원", "manager": "이용주"}, {"id": "MCM020", "name": "NC 해운대", "manager": "이용수"}, {"id": "MFB019", "name": "Sk스토아", "manager": ""}, {"id": "MCA021", "name": "W몰 구로", "manager": ""}, {"id": "MBE036", "name": "Y스퀘어 용인", "manager": "조남오"}, {"id": "MBF001", "name": "강릉", "manager": "정동길"}, {"id": "MBL040", "name": "거제 고현", "manager": "이용주"}, {"id": "MBE044", "name": "경기 광주", "manager": "조남오"}, {"id": "MDE009", "name": "경기 오포", "manager": ""}, {"id": "MBK016", "name": "경북도청 신도시", "manager": "황민아"}, {"id": "MBK008", "name": "경산 정평", "manager": "황민아"}, {"id": "MBK009", "name": "경주 노동", "manager": "황민아"}, {"id": "MBK007", "name": "경주 용강", "manager": "황민아"}, {"id": "MFA102", "name": "계명동산병원", "manager": ""}, {"id": "MBB035", "name": "고덕", "manager": "정동길"}, {"id": "MBH005", "name": "공주 신관", "manager": "이용주"}, {"id": "MBE068", "name": "광명어반브릭스", "manager": "조민욱"}, {"id": "MBO009", "name": "광양 칠성", "manager": "김아경"}, {"id": "MBP008", "name": "광주 수완", "manager": "김아경"}, {"id": "MBP005", "name": "광주 연제", "manager": "김아경"}, {"id": "MBP010", "name": "광주 용봉", "manager": "김아경"}, {"id": "MBP006", "name": "광주 주월", "manager": "김아경"}, {"id": "MBP003", "name": "광주 충장로", "manager": "김아경"}, {"id": "MBK010", "name": "구미 광평", "manager": "황민아"}, {"id": "MBK017", "name": "구미 확장단지", "manager": "황민아"}, {"id": "MBK014", "name": "구미G7", "manager": "황민아"}, {"id": "MDK004", "name": "구미해마루점", "manager": ""}, {"id": "MBA051", "name": "구의 이스트폴", "manager": "엄금란"}, {"id": "MFA112", "name": "국민대학교(미입점)", "manager": ""}, {"id": "MBN008", "name": "군산 나운", "manager": "김아경"}, {"id": "MBN013", "name": "김제", "manager": "김아경"}, {"id": "MBK011", "name": "김천", "manager": "황민아"}, {"id": "MBK015", "name": "김천 혁신도시", "manager": "황민아"}, {"id": "MBA044", "name": "김포 양곡", "manager": "공석"}, {"id": "MBA031", "name": "김포파인스타몰", "manager": "공석"}, {"id": "MBL027", "name": "김해 주촌", "manager": "이용주"}, {"id": "MBL023", "name": "김해 진영", "manager": "이용주"}, {"id": "MBO005", "name": "나주 혁신도시", "manager": "김아경"}, {"id": "MBO010", "name": "남악", "manager": "김아경"}, {"id": "MBD014", "name": "남양주화도한성몰", "manager": ""}, {"id": "MBN011", "name": "남원", "manager": "김아경"}, {"id": "MBF006", "name": "남춘천", "manager": "정동길"}, {"id": "MBH011", "name": "내포 신도시", "manager": "엄초희"}, {"id": "MFA038", "name": "네이버", "manager": ""}, {"id": "MFB075", "name": "네이버(풀필먼트)", "manager": ""}, {"id": "MBH013", "name": "논산", "manager": "이용주"}, {"id": "MBD013", "name": "다산 아이비몰", "manager": ""}, {"id": "MBH010", "name": "당진 시곡", "manager": "엄초희"}, {"id": "MBH009", "name": "당진 중앙", "manager": "엄초희"}, {"id": "MBJ014", "name": "대구 반야월", "manager": "황민아"}, {"id": "MBJ022", "name": "대구 수성", "manager": "황민아"}, {"id": "MBJ010", "name": "대구 진천", "manager": "황민아"}, {"id": "MBJ012", "name": "대구 태전", "manager": "황민아"}, {"id": "MBJ015", "name": "대구 테크노폴리스점", "manager": ""}, {"id": "MBJ018", "name": "대구 현풍", "manager": "황민아"}, {"id": "MBJ009", "name": "대구두류", "manager": ""}, {"id": "MDJ003", "name": "대구송현점", "manager": ""}, {"id": "MCJ023", "name": "대백프라자", "manager": "황민아"}, {"id": "MBI010", "name": "대전 판암", "manager": "이용주"}, {"id": "MBA001", "name": "대학로", "manager": "정동길"}, {"id": "MBL004", "name": "더시티세븐 창원", "manager": ""}, {"id": "MCE093", "name": "더타운몰 킨텍스", "manager": ""}, {"id": "MBD021", "name": "동두천", "manager": "조민욱"}, {"id": "MBJ004", "name": "동성로 중앙", "manager": "황민아"}, {"id": "MBN012", "name": "동전주", "manager": "김아경"}, {"id": "MBE049", "name": "동탄 능동", "manager": "조남오"}, {"id": "MBE066", "name": "동탄 레이크꼬모", "manager": "조남오"}, {"id": "MBE103", "name": "동탄 영천", "manager": "조남오"}, {"id": "MBF005", "name": "동해 부곡", "manager": "정동길"}, {"id": "MBB026", "name": "둔촌", "manager": "정동길"}, {"id": "MCL021", "name": "디큐브 거제", "manager": ""}, {"id": "MBE030", "name": "롯)기흥아울렛", "manager": ""}, {"id": "MBA026", "name": "롯데 건대스타시티", "manager": "엄금란"}, {"id": "MBE014", "name": "롯데 광교 아울렛", "manager": ""}, {"id": "MBM005", "name": "롯데 광복", "manager": "이용수"}, {"id": "MBA007", "name": "롯데 김포공항점", "manager": ""}, {"id": "MBO002", "name": "롯데 남악 아울렛", "manager": ""}, {"id": "MBI002", "name": "롯데 대전", "manager": ""}, {"id": "MBM021", "name": "롯데 동래", "manager": "이용수"}, {"id": "MBA011", "name": "롯데 미아", "manager": "정동길"}, {"id": "MBE090", "name": "롯데 분당", "manager": ""}, {"id": "MBE009", "name": "롯데 수원몰", "manager": ""}, {"id": "MCA009", "name": "롯데 영등포", "manager": "엄금란"}, {"id": "MBB005", "name": "롯데 월드타워몰", "manager": ""}, {"id": "MBL002", "name": "롯데 창원", "manager": "이용주"}, {"id": "MBA014", "name": "롯데 청량리", "manager": "정동길"}, {"id": "MBE007", "name": "롯데 평촌", "manager": "엄금란"}, {"id": "MCC009", "name": "롯데마트 부평역", "manager": ""}, {"id": "MCE042", "name": "롯데마트 영통", "manager": ""}, {"id": "MCN001", "name": "롯데마트 익산점", "manager": ""}, {"id": "MCL024", "name": "롯데마트 진해", "manager": ""}, {"id": "MBE040", "name": "롯데몰 수지", "manager": ""}, {"id": "MBE051", "name": "롯데몰) 산본", "manager": ""}, {"id": "MBA028", "name": "롯데몰) 은평", "manager": ""}, {"id": "MBJ020", "name": "롯데백화점 대구", "manager": "황민아"}, {"id": "MCC031", "name": "롯마) 검단", "manager": "공석"}, {"id": "MCC029", "name": "롯마) 계양", "manager": "공석"}, {"id": "MCE036", "name": "롯마) 광교", "manager": ""}, {"id": "MCP017", "name": "롯마) 광주수완", "manager": "김아경"}, {"id": "MCN007", "name": "롯마) 군산", "manager": "김아경"}, {"id": "MCE089", "name": "롯마) 김포한강", "manager": "공석"}, {"id": "MCI003", "name": "롯마) 대덕", "manager": "이용주"}, {"id": "MCL037", "name": "롯마) 마산", "manager": "이용주"}, {"id": "MCD025", "name": "롯마) 마석", "manager": "조민욱"}, {"id": "MCO011", "name": "롯마) 맥스 목포", "manager": "김아경"}, {"id": "MCC026", "name": "롯마) 부평", "manager": "공석"}, {"id": "MCM017", "name": "롯마) 사상", "manager": ""}, {"id": "MCC010", "name": "롯마) 삼산", "manager": "공석"}, {"id": "MCA050", "name": "롯마) 삼양", "manager": ""}, {"id": "MCG013", "name": "롯마) 상당", "manager": "엄초희"}, {"id": "MCA027", "name": "롯마) 서울양평", "manager": "엄금란"}, {"id": "MCB018", "name": "롯마) 서초", "manager": "정동길"}, {"id": "MCF015", "name": "롯마) 석사", "manager": "정동길"}, {"id": "MCH022", "name": "롯마) 성정", "manager": "엄초희"}, {"id": "MCH030", "name": "롯마) 아산터미널", "manager": "엄초희"}, {"id": "MCE058", "name": "롯마) 안산", "manager": "엄금란"}, {"id": "MCE100", "name": "롯마) 안산 선부", "manager": "엄금란"}, {"id": "MCE111", "name": "롯마) 안성", "manager": "조남오"}, {"id": "MCC030", "name": "롯마) 연수", "manager": "공석"}, {"id": "MCE101", "name": "롯마) 오산", "manager": "조남오"}, {"id": "MCP009", "name": "롯마) 월드컵", "manager": "김아경"}, {"id": "MCJ029", "name": "롯마) 율하", "manager": "황민아"}, {"id": "MCE083", "name": "롯마) 의왕", "manager": "조민욱"}, {"id": "MCD022", "name": "롯마) 장암", "manager": "조민욱"}, {"id": "MCL038", "name": "롯마) 장유", "manager": "이용주"}, {"id": "MCN016", "name": "롯마) 전주", "manager": "김아경"}, {"id": "MCA055", "name": "롯마) 제타플렉스 잠실", "manager": "정동길"}, {"id": "MCA039", "name": "롯마) 중계", "manager": "정동길"}, {"id": "MCL025", "name": "롯마) 진장", "manager": ""}, {"id": "MCF003", "name": "롯마) 춘천", "manager": "정동길"}, {"id": "MCE118", "name": "롯마) 평택", "manager": "조남오"}, {"id": "MCH029", "name": "롯마) 홍성", "manager": "엄초희"}, {"id": "MCM035", "name": "롯마) 화명", "manager": "이용수"}, {"id": "MCD026", "name": "롯마) 화정", "manager": "공석"}, {"id": "MBD018", "name": "롯아) 구리", "manager": "조민욱"}, {"id": "MBL008", "name": "롯아) 김해", "manager": "이용주"}, {"id": "MBH003", "name": "롯아) 부여", "manager": "이용주"}, {"id": "MBE062", "name": "롯아) 파주", "manager": "공석"}, {"id": "MBD020", "name": "리치마트 양주", "manager": "조민욱"}, {"id": "MBG008", "name": "메가폴리스 청주", "manager": "엄초희"}, {"id": "MBA003", "name": "메세나 합정", "manager": ""}, {"id": "MBA016", "name": "명동2", "manager": "정동길"}, {"id": "MBB025", "name": "명일", "manager": "정동길"}, {"id": "MCE028", "name": "모다 오산동탄", "manager": ""}, {"id": "MCK007", "name": "모다아울렛 경주점", "manager": ""}, {"id": "MCK006", "name": "모다아울렛 김천구미점", "manager": ""}, {"id": "MCJ006", "name": "모다아울렛 대구점", "manager": ""}, {"id": "MCE121", "name": "모다아울렛 오산동탄", "manager": "조남오"}, {"id": "MCH005", "name": "모다아울렛 천안아산점", "manager": ""}, {"id": "MCH006", "name": "모다아울렛 행담도점", "manager": ""}, {"id": "MBO006", "name": "목포 옥암", "manager": "김아경"}, {"id": "MFA033", "name": "무신사", "manager": ""}, {"id": "MBL033", "name": "밀양 내이", "manager": "이용주"}, {"id": "MBH014", "name": "보령", "manager": "엄초희"}, {"id": "MBM016", "name": "부산 경성대", "manager": "이용수"}, {"id": "MBM015", "name": "부산 대영시네마", "manager": "이용수"}, {"id": "MBM020", "name": "부산 사하", "manager": "이용수"}, {"id": "MBM022", "name": "부산 신평", "manager": "이용수"}, {"id": "MDC002", "name": "부평 아이즈빌", "manager": "이상완"}, {"id": "MBL024", "name": "북울산", "manager": "이용수"}, {"id": "MBA043", "name": "불광역", "manager": ""}, {"id": "MBL028", "name": "사천", "manager": "이용주"}, {"id": "MBE006", "name": "산본점", "manager": ""}, {"id": "MBB028", "name": "상도", "manager": "엄금란"}, {"id": "MBK013", "name": "상주", "manager": "황민아"}, {"id": "MBP009", "name": "서광주", "manager": "김아경"}, {"id": "MBQ004", "name": "서귀포", "manager": ""}, {"id": "MBQ009", "name": "서귀포 토평", "manager": "김아경"}, {"id": "MBH007", "name": "서산 예천", "manager": "엄초희"}, {"id": "MBB027", "name": "석촌", "manager": "정동길"}, {"id": "MBI009", "name": "세이 탄방", "manager": "이용주"}, {"id": "MBG009", "name": "세종 파이낸스", "manager": ""}, {"id": "MBF004", "name": "속초 조양", "manager": "정동길"}, {"id": "MBC013", "name": "송도 인천대입구역", "manager": "공석"}, {"id": "MBE094", "name": "수원 고색", "manager": "조남오"}, {"id": "MBE074", "name": "수원 망포", "manager": "조남오"}, {"id": "MBA039", "name": "수유 에피소드", "manager": "정동길"}, {"id": "MBO003", "name": "순천", "manager": "김아경"}, {"id": "MBC001", "name": "스퀘어원 인천", "manager": ""}, {"id": "MBD008", "name": "스타필드 고양", "manager": "공석"}, {"id": "MBE121", "name": "스타필드 빌리지 운정", "manager": "공석"}, {"id": "MBE091", "name": "스타필드 수원", "manager": "조남오"}, {"id": "MBM013", "name": "스타필드 시티 명지", "manager": "이용수"}, {"id": "MBE050", "name": "스타필드 시티 위례", "manager": "조민욱"}, {"id": "MBE058", "name": "스타필드 안성", "manager": "조남오"}, {"id": "MBB008", "name": "스타필드 코엑스", "manager": ""}, {"id": "MBE017", "name": "스타필드 하남", "manager": "조민욱"}, {"id": "MBK022", "name": "스타필드마켓 경산", "manager": "황민아"}, {"id": "MBE116", "name": "스타필드마켓 동탄", "manager": "조남오"}, {"id": "MBE108", "name": "스타필드마켓 일산", "manager": "공석"}, {"id": "MBJ007", "name": "스파크랜드 동성로", "manager": ""}, {"id": "MBE098", "name": "시흥 능곡", "manager": "조민욱"}, {"id": "MDE005", "name": "시흥 베니스스퀘어", "manager": "이상완"}, {"id": "MBE089", "name": "시흥 성담스퀘어", "manager": "조민욱"}, {"id": "MCL018", "name": "신세계 마산", "manager": ""}, {"id": "MCM018", "name": "신세계 센텀", "manager": "이용수"}, {"id": "MFE002", "name": "신세계 시흥 (미입점)", "manager": ""}, {"id": "MCH018", "name": "신세계 천안아산", "manager": "엄초희"}, {"id": "MFB016", "name": "신세계TV쇼핑", "manager": ""}, {"id": "MBE056", "name": "신세계시흥아울렛", "manager": ""}, {"id": "MBQ001", "name": "신제주직영", "manager": ""}, {"id": "MBA045", "name": "쌍문", "manager": "정동길"}, {"id": "MBH017", "name": "아산 둔포", "manager": "엄초희"}, {"id": "MBH006", "name": "아산 방축", "manager": "엄초희"}, {"id": "MBH016", "name": "아산 탕정", "manager": "엄초희"}, {"id": "MBH004", "name": "아산 풍기", "manager": "엄초희"}, {"id": "MBL005", "name": "아이스퀘어 김해", "manager": "이용주"}, {"id": "MBA041", "name": "아이파크 고척", "manager": "엄금란"}, {"id": "MCA011", "name": "아이파크몰 용산", "manager": ""}, {"id": "MCM013", "name": "아트몰링 하단", "manager": ""}, {"id": "MBK004", "name": "안동", "manager": "황민아"}, {"id": "MCM028", "name": "애플아울렛", "manager": "이용수"}, {"id": "MBC011", "name": "앨리웨이인천", "manager": ""}, {"id": "MBL030", "name": "양산 물금", "manager": "이용주"}, {"id": "MBL022", "name": "양산 석산", "manager": "이용주"}, {"id": "MBD019", "name": "양주 고읍", "manager": "조민욱"}, {"id": "MBL019", "name": "업스퀘어 울산", "manager": "이용수"}, {"id": "MBE043", "name": "엔터식스 안양", "manager": "엄금란"}, {"id": "MCB016", "name": "엔터식스 천호", "manager": "정동길"}, {"id": "MBO007", "name": "여수 둔덕", "manager": "김아경"}, {"id": "MBB029", "name": "영등포", "manager": "엄금란"}, {"id": "MBK006", "name": "영주", "manager": "황민아"}, {"id": "MBK012", "name": "영천", "manager": "황민아"}, {"id": "MBE046", "name": "오산점", "manager": ""}, {"id": "MFA031", "name": "옥션", "manager": ""}, {"id": "MBA038", "name": "왕십리역", "manager": "엄금란"}, {"id": "MBE086", "name": "용인 구성", "manager": ""}, {"id": "MBE078", "name": "용인 동백", "manager": "조남오"}, {"id": "MBE123", "name": "용인 유방점", "manager": "조남오"}, {"id": "MBE045", "name": "용인 하갈", "manager": "조남오"}, {"id": "MCL047", "name": "울산 원예농협", "manager": "이용수"}, {"id": "MBL031", "name": "울산대병원", "manager": ""}, {"id": "MBF009", "name": "원주 개운", "manager": "정동길"}, {"id": "MBF003", "name": "원주 무실", "manager": "정동길"}, {"id": "MBF011", "name": "원주기업도시", "manager": "정동길"}, {"id": "MFB007", "name": "위메프", "manager": ""}, {"id": "MBD001", "name": "의정부", "manager": "조민욱"}, {"id": "MBD010", "name": "의정부 민락", "manager": "조민욱"}, {"id": "MBA040", "name": "이대서울병원", "manager": "엄금란"}, {"id": "MBC025", "name": "이마트 검단", "manager": "공석"}, {"id": "MCC027", "name": "이마트 검단", "manager": ""}, {"id": "MCC002", "name": "이마트 계양", "manager": "공석"}, {"id": "MBE107", "name": "이마트 고잔", "manager": ""}, {"id": "MCE087", "name": "이마트 광교", "manager": "조남오"}, {"id": "MCE061", "name": "이마트 광명소하", "manager": "조민욱"}, {"id": "MBP013", "name": "이마트 광주", "manager": "김아경"}, {"id": "MCB026", "name": "이마트 구로", "manager": "엄금란"}, {"id": "MCN008", "name": "이마트 군산", "manager": ""}, {"id": "MCM034", "name": "이마트 금정", "manager": "이용수"}, {"id": "MCE085", "name": "이마트 김포한강", "manager": "공석"}, {"id": "MCL032", "name": "이마트 김해", "manager": "이용주"}, {"id": "MBE114", "name": "이마트 남양주", "manager": "조민욱"}, {"id": "MCD023", "name": "이마트 남양주", "manager": ""}, {"id": "MCD020", "name": "이마트 다산", "manager": "조민욱"}, {"id": "MCI013", "name": "이마트 대전TM", "manager": "이용주"}, {"id": "MCK015", "name": "이마트 동구미", "manager": "황민아"}, {"id": "MCC025", "name": "이마트 동인천", "manager": "공석"}, {"id": "MCE009", "name": "이마트 동탄", "manager": ""}, {"id": "MCJ028", "name": "이마트 만촌", "manager": "황민아"}, {"id": "MBB036", "name": "이마트 목동", "manager": "엄금란"}, {"id": "MCB034", "name": "이마트 목동", "manager": ""}, {"id": "MCO010", "name": "이마트 목포", "manager": "김아경"}, {"id": "MBM025", "name": "이마트 문현", "manager": "이용수"}, {"id": "MCD018", "name": "이마트 별내", "manager": "조민욱"}, {"id": "MCH013", "name": "이마트 보령", "manager": ""}, {"id": "MCE053", "name": "이마트 부천", "manager": "조민욱"}, {"id": "MCL031", "name": "이마트 사천", "manager": ""}, {"id": "MCE079", "name": "이마트 산본", "manager": "엄금란"}, {"id": "MCK018", "name": "이마트 상주", "manager": "황민아"}, {"id": "MBE115", "name": "이마트 성남", "manager": "조남오"}, {"id": "MBJ021", "name": "이마트 성서", "manager": "황민아"}, {"id": "MCG007", "name": "이마트 세종", "manager": "이용주"}, {"id": "MBF016", "name": "이마트 속초", "manager": "정동길"}, {"id": "MCA051", "name": "이마트 수색", "manager": "엄금란"}, {"id": "MCE080", "name": "이마트 수지", "manager": "조남오"}, {"id": "MCO009", "name": "이마트 순천", "manager": ""}, {"id": "MCQ004", "name": "이마트 신제주", "manager": "김아경"}, {"id": "MCK021", "name": "이마트 안동", "manager": "황민아"}, {"id": "MCE090", "name": "이마트 안성", "manager": "조남오"}, {"id": "MCE059", "name": "이마트 안양", "manager": "엄금란"}, {"id": "MCL022", "name": "이마트 양산", "manager": "이용주"}, {"id": "MBE124", "name": "이마트 양재", "manager": "정동길"}, {"id": "MBO011", "name": "이마트 여수", "manager": ""}, {"id": "MCE007", "name": "이마트 여주", "manager": "조남오"}, {"id": "MCC028", "name": "이마트 연수", "manager": "공석"}, {"id": "MCM005", "name": "이마트 연제", "manager": "이용수"}, {"id": "MBE105", "name": "이마트 오산", "manager": "조남오"}, {"id": "MCL034", "name": "이마트 울산", "manager": "이용수"}, {"id": "MCF011", "name": "이마트 원주", "manager": "정동길"}, {"id": "MBA055", "name": "이마트 은평", "manager": "엄금란"}, {"id": "MCA042", "name": "이마트 은평", "manager": ""}, {"id": "MBN015", "name": "이마트 익산", "manager": "김아경"}, {"id": "MCA049", "name": "이마트 자양", "manager": "엄금란"}, {"id": "MCN013", "name": "이마트 전주", "manager": "김아경"}, {"id": "MCE078", "name": "이마트 죽전", "manager": ""}, {"id": "MCD015", "name": "이마트 진접", "manager": ""}, {"id": "MCL036", "name": "이마트 진주", "manager": "이용주"}, {"id": "MCH021", "name": "이마트 천안", "manager": "엄초희"}, {"id": "MCH028", "name": "이마트 천안서북", "manager": ""}, {"id": "MCF006", "name": "이마트 춘천", "manager": "정동길"}, {"id": "MCL030", "name": "이마트 통영", "manager": "이용주"}, {"id": "MCE102", "name": "이마트 파주", "manager": "공석"}, {"id": "MCE094", "name": "이마트 파주운정", "manager": "공석"}, {"id": "MCE065", "name": "이마트 평촌", "manager": "엄금란"}, {"id": "MCK022", "name": "이마트 포항이동", "manager": "황민아"}, {"id": "MCE081", "name": "이마트 풍산", "manager": ""}, {"id": "MCE086", "name": "이마트 하남", "manager": "조민욱"}, {"id": "MCA043", "name": "이마트 하월곡", "manager": ""}, {"id": "MBM030", "name": "이마트 해운대", "manager": "이용수"}, {"id": "MCJ025", "name": "이마트월배", "manager": "황민아"}, {"id": "MBE021", "name": "이천 사음", "manager": "조남오"}, {"id": "MBE087", "name": "이천 증포", "manager": "조남오"}, {"id": "MBN010", "name": "익산 영등", "manager": "김아경"}, {"id": "MBE063", "name": "일산 덕이", "manager": "공석"}, {"id": "MBE079", "name": "일산 원마운트", "manager": "공석"}, {"id": "MBE085", "name": "일산 차병원", "manager": "공석"}, {"id": "MBN007", "name": "전주 객사", "manager": "김아경"}, {"id": "MBN009", "name": "전주 에코시티", "manager": "김아경"}, {"id": "MBN005", "name": "전주 효자", "manager": "김아경"}, {"id": "MBN014", "name": "정읍", "manager": "김아경"}, {"id": "MDQ004", "name": "제주 연동", "manager": ""}, {"id": "MBQ007", "name": "제주 연북", "manager": "김아경"}, {"id": "MBQ003", "name": "제주 연삼", "manager": "김아경"}, {"id": "MBQ002", "name": "제주 중앙", "manager": ""}, {"id": "MBQ006", "name": "제주 탑동", "manager": "김아경"}, {"id": "MBG012", "name": "제천 장락", "manager": "엄초희"}, {"id": "MFB096", "name": "지그재그", "manager": ""}, {"id": "MFA029", "name": "지마켓", "manager": ""}, {"id": "MBG002", "name": "지웰시티 청주", "manager": "엄초희"}, {"id": "MBL035", "name": "진주 충무공", "manager": "이용주"}, {"id": "MBL029", "name": "창원 내서", "manager": "이용주"}, {"id": "MBL032", "name": "창원 진해", "manager": "이용주"}, {"id": "MBH015", "name": "천안 구성", "manager": "엄초희"}, {"id": "MBH012", "name": "천안 불당", "manager": "엄초희"}, {"id": "MBA042", "name": "청구역", "manager": "정동길"}, {"id": "MBG001", "name": "청주", "manager": "엄초희"}, {"id": "MBG014", "name": "청주 내덕", "manager": "엄초희"}, {"id": "MDG002", "name": "청주 성안", "manager": ""}, {"id": "MBG017", "name": "청주 오송", "manager": "엄초희"}, {"id": "MBG019", "name": "청주수곡점", "manager": "엄초희"}, {"id": "MBH019", "name": "충남 예산", "manager": "엄초희"}, {"id": "MBG016", "name": "충북 증평", "manager": "엄초희"}, {"id": "MBG011", "name": "충북 혁신도시", "manager": "엄초희"}, {"id": "MBG013", "name": "충주 교현", "manager": "엄초희"}, {"id": "MBG007", "name": "충주 연수", "manager": "엄초희"}, {"id": "MBG015", "name": "충주 지현", "manager": "엄초희"}, {"id": "MFB017", "name": "카카오커머스", "manager": ""}, {"id": "MFA032", "name": "카카오톡", "manager": ""}, {"id": "MBB018", "name": "타임스트림 신림", "manager": "엄금란"}, {"id": "MBL026", "name": "탑마트 서진주", "manager": "이용주"}, {"id": "MBH021", "name": "태안", "manager": "엄초희"}, {"id": "MBC023", "name": "트레이더스 구월", "manager": "공석"}, {"id": "MBE069", "name": "판교역", "manager": "조남오"}, {"id": "MBE097", "name": "평택 고덕", "manager": "조남오"}, {"id": "MBE055", "name": "평택 죽백", "manager": "조남오"}, {"id": "MDE010", "name": "평택장당점", "manager": ""}, {"id": "MBD022", "name": "포천 선단", "manager": "조민욱"}, {"id": "MBD002", "name": "포천송우리점", "manager": ""}, {"id": "MBK002", "name": "포항 장성", "manager": "황민아"}, {"id": "MBK005", "name": "포항 해도", "manager": "황민아"}, {"id": "MBK023", "name": "포항성곡", "manager": "황민아"}, {"id": "MBE104", "name": "하남 감일", "manager": "조민욱"}, {"id": "MFB011", "name": "하프클럽", "manager": ""}, {"id": "MCB032", "name": "현대 가산아울렛", "manager": ""}, {"id": "MCA037", "name": "현대 디큐브시티", "manager": ""}, {"id": "MCA005", "name": "현대 미아", "manager": ""}, {"id": "MCA046", "name": "현대 신촌", "manager": "엄금란"}, {"id": "MCE012", "name": "현대 중동", "manager": "조민욱"}, {"id": "MEA039", "name": "현대홈쇼핑(외부)", "manager": ""}, {"id": "MCB031", "name": "현아) 가든", "manager": "정동길"}, {"id": "MBB021", "name": "홈플 목동", "manager": ""}, {"id": "MBM017", "name": "홈플 해운대", "manager": ""}, {"id": "MBC015", "name": "홈플) 가좌", "manager": ""}, {"id": "MBC012", "name": "홈플) 간석", "manager": "공석"}, {"id": "MBB015", "name": "홈플) 강동", "manager": "정동길"}, {"id": "MBB020", "name": "홈플) 강서", "manager": "엄금란"}, {"id": "MBB017", "name": "홈플) 금천", "manager": "엄금란"}, {"id": "MBE013", "name": "홈플) 김포 풍무", "manager": ""}, {"id": "MBL013", "name": "홈플) 김해", "manager": "이용주"}, {"id": "MBP004", "name": "홈플) 동광주", "manager": "김아경"}, {"id": "MBE083", "name": "홈플) 동수원", "manager": "조남오"}, {"id": "MBA033", "name": "홈플) 방학", "manager": "정동길"}, {"id": "MBE015", "name": "홈플) 병점", "manager": "조남오"}, {"id": "MBE061", "name": "홈플) 부천상동", "manager": ""}, {"id": "MBJ008", "name": "홈플) 성서", "manager": "황민아"}, {"id": "MBG003", "name": "홈플) 세종", "manager": "이용주"}, {"id": "MBM023", "name": "홈플) 센텀", "manager": "이용수"}, {"id": "MBE088", "name": "홈플) 시화", "manager": "조민욱"}, {"id": "MBM018", "name": "홈플) 아시아드", "manager": "이용수"}, {"id": "MBE070", "name": "홈플) 안산고잔", "manager": ""}, {"id": "MBL009", "name": "홈플) 울산", "manager": "이용수"}, {"id": "MBL010", "name": "홈플) 울산 남구", "manager": ""}, {"id": "MBL007", "name": "홈플) 울산 동구", "manager": "이용수"}, {"id": "MBA036", "name": "홈플) 월드컵", "manager": "엄금란"}, {"id": "MBI005", "name": "홈플) 유성", "manager": "이용주"}, {"id": "MBD012", "name": "홈플) 의정부", "manager": "조민욱"}, {"id": "MBN002", "name": "홈플) 익산", "manager": ""}, {"id": "MBC006", "name": "홈플) 인천 송도", "manager": "공석"}, {"id": "MBC014", "name": "홈플) 인천청라", "manager": "공석"}, {"id": "MBC003", "name": "홈플) 작전", "manager": "공석"}, {"id": "MBD004", "name": "홈플) 진접", "manager": "조민욱"}, {"id": "MBF007", "name": "홈플) 춘천", "manager": "정동길"}, {"id": "MBJ013", "name": "홈플) 칠곡", "manager": "황민아"}, {"id": "MBD005", "name": "홈플) 파주 운정", "manager": "공석"}, {"id": "MBE035", "name": "홈플) 화성향남", "manager": "조남오"}, {"id": "MBE005", "name": "홈플러스 북수원점", "manager": ""}, {"id": "MBA018", "name": "홈플러스 상봉점", "manager": ""}, {"id": "MBA034", "name": "홍대", "manager": "엄금란"}, {"id": "MBA037", "name": "홍대 중앙", "manager": ""}, {"id": "MDE007", "name": "화성 봉담", "manager": "이상완"}, {"id": "MBE084", "name": "화성봉담중앙", "manager": "조남오"}];
+
+// ══════════════════════════════════════
+//  인증
+// ══════════════════════════════════════
+const PW = 'topten10';
+const AUTO_KEY = 'topten_task_autologin';
+
+function doLogin(){
+  const v = document.getElementById('pw-input').value;
+  if(v === PW){
+    localStorage.setItem(AUTO_KEY,'1');
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app').style.display='block';
+    initApp();
+  } else {
+    document.getElementById('login-err').style.display='block';
+    document.getElementById('pw-input').value='';
+  }
+}
+function doLogout(){
+  localStorage.removeItem(AUTO_KEY);
+  location.reload();
+}
+
+// ══════════════════════════════════════
+//  설정 (Apps Script URL)
+// ══════════════════════════════════════
+const URL_KEY = 'topten_script_url';
+function getScriptUrl(){ return localStorage.getItem(URL_KEY)||''; }
+function openSettings(){
+  document.getElementById('script-url-input').value = getScriptUrl();
+  document.getElementById('setting-overlay').classList.add('open');
+}
+function closeSettings(){ document.getElementById('setting-overlay').classList.remove('open'); }
+function saveSettings(){
+  const v = document.getElementById('script-url-input').value.trim();
+  localStorage.setItem(URL_KEY, v);
+  closeSettings();
+  showToast('✅ URL이 저장되었습니다');
+}
+
+// ══════════════════════════════════════
+//  네비게이션
+// ══════════════════════════════════════
+function showPage(name, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(name==='dashboard') loadDashboard();
+}
+
+// ══════════════════════════════════════
+//  매장 자동완성 datalist
+// ══════════════════════════════════════
+function buildStoreDatalists(){
+  const ids = ['open-store-dl','close-store-dl','admin-store-dl'];
+  const html = STORES.map(s=>`<option value="${s.name}">`).join('');
+  ids.forEach(id=>{ const el=document.getElementById(id); if(el) el.innerHTML=html; });
+}
+
+// ══════════════════════════════════════
+//  업무 유형 데이터
+// ══════════════════════════════════════
+const OPEN_TASKS=[
+  {key:'code',num:'01',icon:'🏢',name:'종사업장코드 발행',timing:'계약 후 즉시'},
+  {key:'ppt',num:'02',icon:'📊',name:'PPT 작성',timing:'1달 전'},
+  {key:'mail',num:'03',icon:'📬',name:'입점 안내 메일',timing:'1달 전'},
+  {key:'works',num:'04',icon:'💻',name:'웍스(POS) 신청',timing:'4주 전'},
+  {key:'goods',num:'05',icon:'📦',name:'판부자재/사은품',timing:'4주 전'},
+  {key:'cctv',num:'06',icon:'📷',name:'CCTV 설치',timing:'3주 전'},
+  {key:'angle',num:'07',icon:'🔧',name:'앵글 발주',timing:'3주 전'},
+  {key:'hanger',num:'08',icon:'👔',name:'옷걸이 발주',timing:'3주 전'},
+  {key:'banner',num:'09',icon:'🎌',name:'휘장 설치',timing:'2주 전'},
+  {key:'doc',num:'10',icon:'📝',name:'기안/견적 처리',timing:'수시'},
+];
+const CLOSE_TASKS=[
+  {key:'logistics',num:'01',icon:'🚚',name:'물류/RT 중지',timing:'1달 전'},
+  {key:'pop',num:'02',icon:'🗑️',name:'폐점 POP 처리',timing:'1달 전'},
+  {key:'asset',num:'03',icon:'📋',name:'잔존가액 파일 확인',timing:'1달 전'},
+  {key:'assetproc',num:'04',icon:'💰',name:'잔존가액 처리방법',timing:'1달 전'},
+  {key:'ppt',num:'05',icon:'📊',name:'PPT 작성 (폐점)',timing:'1달 전'},
+  {key:'cctv',num:'06',icon:'📷',name:'CCTV 철수',timing:'폐점일'},
+  {key:'doc',num:'07',icon:'📝',name:'기안/유관부서 소통',timing:'수시'},
+  {key:'ecs',num:'08',icon:'📨',name:'ECS 공문',timing:'수시'},
+  {key:'comm',num:'09',icon:'💬',name:'점장 소통',timing:'수시'},
+  {key:'rounding',num:'10',icon:'🔍',name:'라운딩',timing:'폐점일'},
+];
+let currentOpenTask='', currentCloseTask='', dashFilter='all';
+
+function buildTaskGrids(){
+  document.getElementById('open-task-grid').innerHTML=OPEN_TASKS.map(t=>`
+    <button class="task-select-card" onclick="openForm('open','${t.key}')">
+      <div class="tc-num">TAB ${t.num}</div>
+      <div class="tc-icon">${t.icon}</div>
+      <div class="tc-name">${t.name}</div>
+      <div class="tc-timing">⏰ ${t.timing}</div>
+    </button>`).join('');
+  document.getElementById('close-task-grid').innerHTML=CLOSE_TASKS.map(t=>`
+    <button class="task-select-card" onclick="openForm('close','${t.key}')">
+      <div class="tc-num">TAB ${t.num}</div>
+      <div class="tc-icon">${t.icon}</div>
+      <div class="tc-name">${t.name}</div>
+      <div class="tc-timing">⏰ ${t.timing}</div>
+    </button>`).join('');
+}
+
+function openForm(category, taskKey){
+  const tasks = category==='open' ? OPEN_TASKS : CLOSE_TASKS;
+  const task = tasks.find(t=>t.key===taskKey);
+  if(!task) return;
+  if(category==='open'){
+    currentOpenTask=taskKey;
+    document.getElementById('open-step2-title').textContent=task.icon+' '+task.name;
+    document.getElementById('open-step1').style.display='none';
+    document.getElementById('open-step2').style.display='block';
+    // 오늘 날짜 기본값
+    document.getElementById('open-req-date').value = todayStr();
+  } else {
+    currentCloseTask=taskKey;
+    document.getElementById('close-step2-title').textContent=task.icon+' '+task.name;
+    document.getElementById('close-step1').style.display='none';
+    document.getElementById('close-step2').style.display='block';
+    document.getElementById('close-req-date').value = todayStr();
+  }
+}
+function backToStep1(category){
+  if(category==='open'){
+    document.getElementById('open-step1').style.display='block';
+    document.getElementById('open-step2').style.display='none';
+  } else {
+    document.getElementById('close-step1').style.display='block';
+    document.getElementById('close-step2').style.display='none';
+  }
+}
+function selectRadio(btn, fieldId, val){
+  btn.closest('.radio-group').querySelectorAll('.radio-btn').forEach(b=>b.classList.remove('sel'));
+  btn.classList.add('sel');
+  document.getElementById(fieldId).value=val;
+}
+function todayStr(){
+  return new Date().toISOString().slice(0,10);
+}
+
+// ══════════════════════════════════════
+//  Apps Script 통신
+// ══════════════════════════════════════
+function getUrl(){
+  const url = getScriptUrl();
+  if(!url){ showToast('⚙️ 먼저 설정에서 Apps Script URL을 입력해주세요'); openSettings(); return null; }
+  return url;
+}
+function sheetPost(data){
+  const url = getUrl(); if(!url) return Promise.reject('no url');
+  const fd=new FormData();
+  Object.keys(data).forEach(k=>fd.append(k,data[k]??''));
+  return fetch(url,{method:'POST',body:fd,mode:'no-cors'});
+}
+function sheetGet(callback){
+  const url = getUrl(); if(!url) return;
+  const cbName='cb_'+Date.now();
+  window[cbName]=function(res){ callback(res); delete window[cbName]; s.remove(); };
+  const s=document.createElement('script');
+  s.src=url+'?cb='+cbName+'&action=getTasks&t='+Date.now();
+  document.head.appendChild(s);
+}
+
+// ══════════════════════════════════════
+//  신청 제출
+// ══════════════════════════════════════
+function submitReq(category){
+  if(category==='open'){
+    const manager=document.getElementById('open-manager').value.trim();
+    const store=document.getElementById('open-store').value.trim();
+    const storeType=document.getElementById('open-store-type').value;
+    const content=document.getElementById('open-content').value.trim();
+    const deadline=document.getElementById('open-deadline').value;
+    if(!manager||!store||!storeType||!content||!deadline){showToast('❗ 필수 항목을 모두 입력해주세요');return;}
+    const task=OPEN_TASKS.find(t=>t.key===currentOpenTask);
+    sheetPost({action:'submit',category:'open',taskKey:currentOpenTask,
+      typeName:'🏗️ 신규오픈 — '+(task?task.name:''),
+      store,manager,storeType,content,deadline,
+      reqDate:document.getElementById('open-req-date').value,
+      targetDate:document.getElementById('open-target-date').value
+    }).then(()=>{
+      backToStep1('open');
+      // 폼 초기화
+      ['open-manager','open-store','open-store-type','open-content','open-deadline','open-req-date','open-target-date'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+      document.querySelectorAll('#open-step2 .radio-btn').forEach(b=>b.classList.remove('sel'));
+      showToast('✅ 신청이 완료되었습니다!');
+      setTimeout(()=>{showPage('dashboard',document.querySelectorAll('nav button')[3]);},1300);
+    }).catch(()=>{showToast('✅ 신청 완료 (오프라인 저장 불가)');});
+
+  } else if(category==='close'){
+    const manager=document.getElementById('close-manager').value.trim();
+    const store=document.getElementById('close-store').value.trim();
+    const storeType=document.getElementById('close-store-type').value;
+    const content=document.getElementById('close-content').value.trim();
+    const deadline=document.getElementById('close-deadline').value;
+    if(!manager||!store||!storeType||!content||!deadline){showToast('❗ 필수 항목을 모두 입력해주세요');return;}
+    const task=CLOSE_TASKS.find(t=>t.key===currentCloseTask);
+    sheetPost({action:'submit',category:'close',taskKey:currentCloseTask,
+      typeName:'🔒 폐점·이전 — '+(task?task.name:''),
+      store,manager,storeType,content,deadline,
+      reqDate:document.getElementById('close-req-date').value,
+      targetDate:document.getElementById('close-target-date').value
+    }).then(()=>{
+      backToStep1('close');
+      ['close-manager','close-store','close-store-type','close-content','close-deadline','close-req-date','close-target-date'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+      document.querySelectorAll('#close-step2 .radio-btn').forEach(b=>b.classList.remove('sel'));
+      showToast('✅ 신청이 완료되었습니다!');
+      setTimeout(()=>{showPage('dashboard',document.querySelectorAll('nav button')[3]);},1300);
+    }).catch(()=>{showToast('✅ 신청 완료 (오프라인 저장 불가)');});
+
+  } else if(category==='admin'){
+    const manager=document.getElementById('admin-manager').value.trim();
+    const store=document.getElementById('admin-store').value.trim();
+    const storeType=document.getElementById('admin-store-type').value;
+    const sub=document.getElementById('admin-sub').value;
+    const content=document.getElementById('admin-content').value.trim();
+    const deadline=document.getElementById('admin-deadline').value;
+    if(!manager||!store||!storeType||!sub||!content||!deadline){showToast('❗ 필수 항목을 모두 입력해주세요');return;}
+    sheetPost({action:'submit',category:'admin',taskKey:'admin',
+      typeName:'💻 전산·행정 — '+sub,
+      store,manager,storeType,content,deadline,
+      reqDate:document.getElementById('admin-req-date').value,targetDate:''
+    }).then(()=>{
+      ['admin-manager','admin-store','admin-store-type','admin-content','admin-deadline','admin-req-date'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+      document.getElementById('admin-sub').value='';
+      document.querySelectorAll('#page-admin .radio-btn').forEach(b=>b.classList.remove('sel'));
+      showToast('✅ 신청이 완료되었습니다!');
+      setTimeout(()=>{showPage('dashboard',document.querySelectorAll('nav button')[3]);},1300);
+    }).catch(()=>{showToast('✅ 신청 완료 (오프라인 저장 불가)');});
+  }
+}
+
+// ══════════════════════════════════════
+//  대시보드
+// ══════════════════════════════════════
+function loadDashboard(){
+  const list=document.getElementById('task-list');
+  list.innerHTML='<div class="empty-state"><div class="es-icon">⏳</div><p>데이터 불러오는 중...</p></div>';
+  document.getElementById('dash-stats').innerHTML='';
+  sheetGet(function(res){
+    const tasks=(res&&res.tasks)?res.tasks:[];
+    renderDashboardUI(tasks);
+  });
+}
+function setDF(f,btn){
+  dashFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  // 현재 로드된 태스크 재렌더
+  sheetGet(function(res){
+    renderDashboardUI((res&&res.tasks)?res.tasks:[]);
+  });
+}
+function renderDashboardUI(tasks){
+  const pending=tasks.filter(t=>t.status==='pending').length;
+  const progress=tasks.filter(t=>t.status==='progress').length;
+  const done=tasks.filter(t=>t.status==='done').length;
+  const today0=new Date(); today0.setHours(0,0,0,0);
+  const urgent=tasks.filter(t=>{
+    if(!t.deadline||t.status==='done') return false;
+    const d=new Date(t.deadline); d.setHours(0,0,0,0);
+    return (d-today0)/86400000<=3;
+  }).length;
+  document.getElementById('dash-stats').innerHTML=
+    `<div class="stat-badge"><div class="val" style="color:var(--warning)">${pending}</div><div class="lbl">⏳ 대기중</div></div>`+
+    `<div class="stat-badge"><div class="val" style="color:var(--info)">${progress}</div><div class="lbl">🔄 처리중</div></div>`+
+    `<div class="stat-badge"><div class="val" style="color:var(--success)">${done}</div><div class="lbl">✅ 완료</div></div>`+
+    `<div class="stat-badge"><div class="val" style="color:var(--danger)">${urgent}</div><div class="lbl">🚨 기한임박</div></div>`;
+
+  let filtered=tasks;
+  if(dashFilter==='pending') filtered=tasks.filter(t=>t.status==='pending');
+  else if(dashFilter==='progress') filtered=tasks.filter(t=>t.status==='progress');
+  else if(dashFilter==='done') filtered=tasks.filter(t=>t.status==='done');
+  else if(dashFilter==='open') filtered=tasks.filter(t=>t.category==='open');
+  else if(dashFilter==='close') filtered=tasks.filter(t=>t.category==='close');
+  else if(dashFilter==='admin') filtered=tasks.filter(t=>t.category==='admin');
+
+  const list=document.getElementById('task-list');
+  if(!filtered.length){
+    list.innerHTML='<div class="empty-state"><div class="es-icon">📭</div><p>신청 내역이 없습니다</p></div>';
+    return;
+  }
+  const days=['일','월','화','수','목','금','토'];
+  const groups={};
+  filtered.forEach(t=>{
+    const d=(t.createdAt||'').slice(0,10)||'날짜없음';
+    if(!groups[d]) groups[d]=[];
+    groups[d].push(t);
+  });
+  list.innerHTML=Object.entries(groups).sort((a,b)=>b[0].localeCompare(a[0])).map(([date,items])=>{
+    const dd=new Date(date);
+    const label=`${date} (${days[dd.getDay()]||''})`;
+    return `<div style="font-size:12px;font-weight:700;color:var(--muted);margin:8px 0 4px;padding-left:4px;">📅 ${label}</div>`
+    +items.map(t=>{
+      const today0=new Date(); today0.setHours(0,0,0,0);
+      const dlMs=t.deadline?new Date(t.deadline):null;
+      const dlDays=dlMs?Math.round((dlMs-today0)/86400000):null;
+      const dlColor=(dlDays!=null&&dlDays<=3&&t.status!=='done')?'color:var(--danger);font-weight:700':'color:var(--muted)';
+      const dotCls=t.category==='open'?'dot-open':t.category==='close'?'dot-close':'dot-admin';
+      const tid=String(t.id).replace(/"/g,'');
+      return `<div class="task-item">
+        <div class="ti-dot ${dotCls}"></div>
+        <div class="ti-left">
+          <div class="ti-store">${t.store||''}<span style="font-size:12px;font-weight:400;color:var(--muted);margin-left:6px;">· ${t.storeType||''}</span></div>
+          <div class="ti-type">${t.typeName||''} · 담당: ${t.manager||''}</div>
+          <div class="ti-detail">${t.content||''}${t.deadline?` <span style="${dlColor}"> | 기한: ${t.deadline}${dlDays!=null?' (D'+dlDays+')':''}</span>`:''}</div>
+        </div>
+        <div class="ti-right">
+          <select class="status-sel" onchange="updateStatus('${tid}',this.value)">
+            <option value="pending" ${t.status==='pending'?'selected':''}>⏳ 대기</option>
+            <option value="progress" ${t.status==='progress'?'selected':''}>🔄 처리중</option>
+            <option value="done" ${t.status==='done'?'selected':''}>✅ 완료</option>
+          </select>
+        </div>
+      </div>`;
+    }).join('');
+  }).join('');
+}
+function updateStatus(id,status){
+  sheetPost({action:'update',id,status})
+    .then(()=>{ showToast('상태가 업데이트되었습니다'); setTimeout(loadDashboard,600); })
+    .catch(()=>{});
+}
+function clearDone(){
+  if(!confirm('완료된 항목을 모두 삭제할까요?')) return;
+  sheetPost({action:'clear'})
+    .then(()=>{ showToast('🗑️ 완료 항목 정리됨'); setTimeout(loadDashboard,600); })
+    .catch(()=>{});
+}
+
+// ══════════════════════════════════════
+//  토스트
+// ══════════════════════════════════════
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+// ══════════════════════════════════════
+//  초기화
+// ══════════════════════════════════════
+function initApp(){
+  buildStoreDatalists();
+  buildTaskGrids();
+  document.getElementById('admin-req-date').value=todayStr();
+}
+
+// 자동 로그인
+window.addEventListener('DOMContentLoaded',function(){
+  if(localStorage.getItem(AUTO_KEY)==='1'){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app').style.display='block';
+    initApp();
+  }
+  document.getElementById('pw-input').addEventListener('keydown',function(e){
+    if(e.key==='Enter') doLogin();
+  });
+});
+</script>
+</body>
+</html>
