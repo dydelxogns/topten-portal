@@ -476,6 +476,7 @@ nav button.active{color:#fff;border-bottom-color:var(--accent);background:rgba(2
 .map-tool-btn.active{background:var(--accent2);color:#fff;border-color:var(--accent2);}
 .dist-dot{width:10px;height:10px;border-radius:50%;background:#4285f4;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);}
 .dist-info-box{background:#1a2436;color:#fff;font-size:12px;font-weight:700;padding:4px 10px;border-radius:6px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.25);}
+.dist-info-hint{font-size:10px;font-weight:400;color:#9aa4b8;margin-top:2px;}
 .map-loading,.map-error{font-size:13px;color:var(--muted);text-align:center;padding:20px;}
 .map-error{color:var(--accent);}
 .map-summary-row{display:flex;gap:12px;justify-content:center;margin-top:18px;flex-wrap:wrap;}
@@ -712,7 +713,7 @@ let kLabels=[];        // 마커 밑에 매장명을 보여주는 CustomOverlay 
 
 // ===== 거리재기 =====
 let distMode=false, distLine=null, distDots=[], distInfoOverlay=null;
-let radiusMode=false, radiusCenter=null, radiusCircle=null, radiusCenterDot=null, radiusInfoOverlay=null;
+let radiusMode=false, radiusTracking=false, radiusCenter=null, radiusCircle=null, radiusCenterDot=null, radiusInfoOverlay=null;
 
 function loadGeocodeCache(){
   try{ return JSON.parse(localStorage.getItem(GEOCODE_CACHE_KEY)||'{}'); }catch(e){ return {}; }
@@ -759,6 +760,11 @@ function initKakaoMapIfNeeded(){
     kakao.maps.event.addListener(kmap, 'zoom_changed', updateLabelVisibility);
     kakao.maps.event.addListener(kmap, 'click', onDistMapClick);
     kakao.maps.event.addListener(kmap, 'click', onRadiusMapClick);
+    // 반경재기는 네이버맵처럼 마우스 오른쪽 클릭 또는 Esc로 마친다 — 오른쪽 클릭 시
+    // 브라우저 기본 메뉴가 뜨지 않도록 막고 그 자리에서 바로 확정한다.
+    kakao.maps.event.addListener(kmap, 'rightclick', cancelOrFinishRadius);
+    container.addEventListener('contextmenu', function(e){ if(radiusTracking) e.preventDefault(); });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') cancelOrFinishRadius(); });
     placeStoreMarkers();
   });
 }
@@ -808,9 +814,10 @@ function toggleDistMode(){
   if(container) container.style.cursor = (distMode||radiusMode) ? 'crosshair' : '';
 }
 
-// ---- 반경재기: 첫 클릭으로 중심을 찍고, 이후 클릭마다 그 지점까지 거리를 반경으로 하는 원을 그린다 ----
-// (네이버맵의 "반경" 도구와 동일한 동작. 드래그 대신 클릭으로 반경을 조절한다.)
-// 두 점 사이 거리는 거리재기와 마찬가지로 kakao.maps.Polyline.getLength()로 계산한다 —
+// ---- 반경재기: 네이버맵과 동일하게 중심점을 한 번 클릭한 뒤, 클릭하지 않고
+// 마우스를 움직이기만 해도 그 지점까지의 거리를 반경으로 하는 원이 실시간으로 커지고 줄어든다.
+// 두 번째 클릭도 그 자리에서 확정으로 취급하지만, 기본은 오른쪽 클릭 또는 Esc로 마치는 것이다.
+// 반경 거리 계산은 거리재기와 마찬가지로 kakao.maps.Polyline.getLength()를 쓴다 —
 // 지도에 안 붙인(map 옵션 없는) 임시 Polyline이어도 getLength()는 정상 동작한다.
 function onRadiusMapClick(mouseEvent){
   if(!radiusMode) return;
@@ -818,8 +825,18 @@ function onRadiusMapClick(mouseEvent){
   if(!radiusCenter){
     radiusCenter=pos;
     radiusCenterDot=new kakao.maps.CustomOverlay({map:kmap, position:pos, content:'<div class="dist-dot"></div>', zIndex:5});
+    radiusTracking=true;
+    kakao.maps.event.addListener(kmap, 'mousemove', onRadiusMouseMove);
     return;
   }
+  // 이미 중심을 찍고 반경을 따라가는 중에 다시 클릭하면 그 지점에서 바로 확정한다.
+  finishRadiusMeasure(pos);
+}
+function onRadiusMouseMove(mouseEvent){
+  if(!radiusTracking || !radiusCenter) return;
+  updateRadiusPreview(mouseEvent.latLng);
+}
+function updateRadiusPreview(pos){
   const radiusM=new kakao.maps.Polyline({path:[radiusCenter,pos]}).getLength();
   if(!radiusCircle){
     radiusCircle=new kakao.maps.Circle({
@@ -833,12 +850,30 @@ function onRadiusMapClick(mouseEvent){
   showRadiusInfo(radiusM, pos);
 }
 function showRadiusInfo(radiusM, pos){
-  const content=`<div class="dist-info-box">반경 <b>${fmtDist(radiusM)}</b></div>`;
+  const hint = radiusTracking ? `<div class="dist-info-hint">마우스 오른쪽 버튼 또는 'Esc' 키를 눌러 마침</div>` : '';
+  const content=`<div class="dist-info-box"><div>총반경 <b>${fmtDist(radiusM)}</b></div>${hint}</div>`;
   if(radiusInfoOverlay){ radiusInfoOverlay.setPosition(pos); radiusInfoOverlay.setContent(content); }
   else { radiusInfoOverlay=new kakao.maps.CustomOverlay({map:kmap, position:pos, content, yAnchor:1.6, zIndex:6}); }
 }
+// 오른쪽 클릭/Esc 공용 핸들러. 반경을 재는 중이면 마지막 위치에서 확정하고,
+// 아직 중심도 안 찍은 대기 상태라면 그냥 도구를 끈다.
+function cancelOrFinishRadius(){
+  if(!radiusMode) return;
+  if(radiusTracking) finishRadiusMeasure();
+  else toggleRadiusMode();
+}
+function finishRadiusMeasure(pos){
+  if(pos) updateRadiusPreview(pos);
+  if(radiusTracking){
+    kakao.maps.event.removeListener(kmap, 'mousemove', onRadiusMouseMove);
+    radiusTracking=false;
+  }
+  if(radiusCircle) showRadiusInfo(radiusCircle.getRadius(), pos || radiusCenter); // 안내 문구 없이 최종값만 표시
+  if(radiusMode) toggleRadiusMode(); // 확정되면 네이버처럼 도구는 자동으로 꺼진다(다시 재려면 버튼을 또 눌러야 함)
+}
 function clearRadiusMeasure(){
   radiusCenter=null;
+  if(radiusTracking){ kakao.maps.event.removeListener(kmap, 'mousemove', onRadiusMouseMove); radiusTracking=false; }
   if(radiusCircle){ radiusCircle.setMap(null); radiusCircle=null; }
   if(radiusCenterDot){ radiusCenterDot.setMap(null); radiusCenterDot=null; }
   if(radiusInfoOverlay){ radiusInfoOverlay.setMap(null); radiusInfoOverlay=null; }
