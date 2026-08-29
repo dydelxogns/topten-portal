@@ -446,6 +446,12 @@ nav button.active{color:#fff;border-bottom-color:var(--accent);background:rgba(2
 .map-legend-bar{width:160px;height:10px;border-radius:5px;background:linear-gradient(90deg,hsl(0,70%,48%),hsl(60,70%,48%),hsl(120,70%,48%));}
 #kakao-map{width:100%;height:520px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);background:#eef0f4;display:flex;align-items:center;justify-content:center;overflow:hidden;}
 .map-marker-label{pointer-events:none;white-space:nowrap;background:rgba(255,255,255,.92);border:1px solid rgba(0,0,0,.12);border-radius:5px;padding:1px 6px;font-size:11px;font-weight:600;color:#1a2436;box-shadow:0 1px 3px rgba(0,0,0,.15);}
+.map-tools-row{display:flex;gap:8px;justify-content:center;margin-bottom:10px;}
+.map-tool-btn{font-size:12px;padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:#fff;cursor:pointer;font-family:inherit;color:#1a2436;}
+.map-tool-btn:hover{background:#f5f6fa;}
+.map-tool-btn.active{background:var(--accent2);color:#fff;border-color:var(--accent2);}
+.dist-dot{width:10px;height:10px;border-radius:50%;background:#4285f4;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);}
+.dist-info-box{background:#1a2436;color:#fff;font-size:12px;font-weight:700;padding:4px 10px;border-radius:6px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.25);}
 .map-loading,.map-error{font-size:13px;color:var(--muted);text-align:center;padding:20px;}
 .map-error{color:var(--accent);}
 .map-summary-row{display:flex;gap:12px;justify-content:center;margin-top:18px;flex-wrap:wrap;}
@@ -581,6 +587,10 @@ nav button.active{color:#fff;border-bottom-color:var(--accent);background:rgba(2
       <span>성장 ▶</span>
       <span style="margin-left:10px;color:#bbb;">(색: 월간 신장율(묶인 숫자는 평균) · 마커 클릭 시 매장 상세)</span>
     </div>
+    <div class="map-tools-row">
+      <button type="button" id="map-dist-btn" class="map-tool-btn" onclick="toggleDistMode()">📏 거리재기 시작</button>
+      <button type="button" class="map-tool-btn" onclick="clearDistMeasure()">🗑️ 거리 지우기</button>
+    </div>
     <div id="kakao-map"></div>
     <div class="map-summary-row" id="region-map-summary"></div>
   </div>
@@ -674,6 +684,9 @@ const kMarkerImgCache={};
 let kMarkerById={};   // 매장ID → 마커 (지도 검색에서 특정 매장으로 이동할 때 씀)
 let kLabels=[];        // 마커 밑에 매장명을 보여주는 CustomOverlay 목록(확대했을 때만 표시)
 
+// ===== 거리재기 =====
+let distMode=false, distLine=null, distDots=[], distInfoOverlay=null;
+
 function loadGeocodeCache(){
   try{ return JSON.parse(localStorage.getItem(GEOCODE_CACHE_KEY)||'{}'); }catch(e){ return {}; }
 }
@@ -717,8 +730,51 @@ function initKakaoMapIfNeeded(){
     container.innerHTML='';
     kmap=new kakao.maps.Map(container, {center:new kakao.maps.LatLng(36.2,127.9), level:13});
     kakao.maps.event.addListener(kmap, 'zoom_changed', updateLabelVisibility);
+    kakao.maps.event.addListener(kmap, 'click', onDistMapClick);
     placeStoreMarkers();
   });
+}
+
+// ---- 거리재기: 지도를 클릭할 때마다 점을 찍고 이어서 누적 거리를 보여준다 ----
+// 도보/자전거 경로 안내가 아니라 클릭한 점들을 직선으로 이은 단순 거리다.
+// kakao.maps.Polyline.getLength()가 실제 거리(m)를 계산해준다(카카오 공식 API).
+function fmtDist(m){
+  return m>=1000 ? (m/1000).toFixed(2)+'km' : Math.round(m)+'m';
+}
+function onDistMapClick(mouseEvent){
+  if(!distMode) return;
+  const pos=mouseEvent.latLng;
+  if(!distLine){
+    distLine=new kakao.maps.Polyline({map:kmap, path:[pos], strokeWeight:4, strokeColor:'#4285f4', strokeOpacity:.85, strokeStyle:'solid'});
+  } else {
+    const path=distLine.getPath();
+    path.push(pos);
+    distLine.setPath(path);
+  }
+  const dot=new kakao.maps.CustomOverlay({map:kmap, position:pos, content:'<div class="dist-dot"></div>', zIndex:5});
+  distDots.push(dot);
+  showDistInfo(distLine.getLength(), pos);
+}
+function showDistInfo(total, pos){
+  const content=`<div class="dist-info-box">총거리 <b>${fmtDist(total)}</b></div>`;
+  if(distInfoOverlay){ distInfoOverlay.setPosition(pos); distInfoOverlay.setContent(content); }
+  else { distInfoOverlay=new kakao.maps.CustomOverlay({map:kmap, position:pos, content, yAnchor:1.6, zIndex:6}); }
+}
+function clearDistMeasure(){
+  if(distLine){ distLine.setMap(null); distLine=null; }
+  distDots.forEach(d=>d.setMap(null)); distDots=[];
+  if(distInfoOverlay){ distInfoOverlay.setMap(null); distInfoOverlay=null; }
+}
+function toggleDistMode(){
+  distMode=!distMode;
+  if(distMode) clearDistMeasure(); // 새로 재기 시작하면 이전에 그린 선은 지운다
+  const btn=document.getElementById('map-dist-btn');
+  if(btn){
+    btn.classList.toggle('active', distMode);
+    btn.textContent = distMode ? '✅ 거리재기 종료' : '📏 거리재기 시작';
+  }
+  const container=document.getElementById('kakao-map');
+  if(container) container.style.cursor = distMode ? 'crosshair' : '';
 }
 
 // 클러스터가 풀려서 매장이 하나씩 보일 만큼 확대했을 때만 매장명 라벨을 켠다.
