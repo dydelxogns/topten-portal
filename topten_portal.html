@@ -477,6 +477,10 @@ nav button.active{color:#fff;border-bottom-color:var(--accent);background:rgba(2
 .dist-dot{width:10px;height:10px;border-radius:50%;background:#4285f4;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4);}
 .dist-info-box{background:#1a2436;color:#fff;font-size:12px;font-weight:700;padding:4px 10px;border-radius:6px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.25);}
 .dist-info-hint{font-size:10px;font-weight:400;color:#9aa4b8;margin-top:2px;}
+/* 카카오맵이 내부 레이어(팬/드래그용 div)에 자체 cursor 스타일을 직접 박아두기 때문에
+   #kakao-map 하나에만 cursor를 줘도 안 먹힌다 — 자손 전체에 !important로 덮어써야
+   측정 도구를 켰을 때 손모양(grab) 대신 십자선 커서가 실제로 보인다. */
+#kakao-map.map-measuring, #kakao-map.map-measuring *{cursor:crosshair !important;}
 .map-loading,.map-error{font-size:13px;color:var(--muted);text-align:center;padding:20px;}
 .map-error{color:var(--accent);}
 .map-summary-row{display:flex;gap:12px;justify-content:center;margin-top:18px;flex-wrap:wrap;}
@@ -811,7 +815,7 @@ function toggleDistMode(){
     btn.textContent = distMode ? '✅ 거리재기 종료' : '📏 거리재기 시작';
   }
   const container=document.getElementById('kakao-map');
-  if(container) container.style.cursor = (distMode||radiusMode) ? 'crosshair' : '';
+  if(container) container.classList.toggle('map-measuring', distMode||radiusMode);
 }
 
 // ---- 반경재기: 네이버맵과 동일하게 중심점을 한 번 클릭한 뒤, 클릭하지 않고
@@ -890,7 +894,7 @@ function toggleRadiusMode(){
     btn.textContent = radiusMode ? '✅ 반경재기 종료' : '⭕ 반경재기 시작';
   }
   const container=document.getElementById('kakao-map');
-  if(container) container.style.cursor = (distMode||radiusMode) ? 'crosshair' : '';
+  if(container) container.classList.toggle('map-measuring', distMode||radiusMode);
 }
 
 // 클러스터가 풀려서 매장이 하나씩 보일 만큼 확대했을 때만 매장명 라벨을 켠다.
@@ -973,7 +977,9 @@ function renderMarkers(positions, noAddrCount){
     const latlng=new kakao.maps.LatLng(lat,lng);
     const marker=new kakao.maps.Marker({position:latlng, image:getMarkerImage(growthMarkerColor(store.m_growth)), title:store.name});
     marker.growth=store.m_growth; // 클러스터 평균 신장율 계산에 사용
-    kakao.maps.event.addListener(marker,'click',()=>openModal(store.id));
+    // 거리재기/반경재기 중에는 매장 마커를 눌러도 상세 모달이 뜨지 않게 막는다 —
+    // 안 그러면 측정 도중 매장 근처를 클릭할 때마다 모달이 열려서 측정이 끊긴다.
+    kakao.maps.event.addListener(marker,'click',()=>{ if(distMode||radiusMode) return; openModal(store.id); });
     kMarkers.push(marker);
     kMarkerById[store.id]=marker;
     bounds.extend(latlng);
@@ -1011,6 +1017,8 @@ function renderMarkers(positions, noAddrCount){
           'font-weight:bold;font-size:13px;box-shadow:0 1px 4px rgba(0,0,0,.3);border:2px solid #fff;';
         div.textContent=n;
         div.addEventListener('click', function(){
+          // 측정 도구가 켜진 동안은 클러스터 클릭도 무시 — 안 그러면 측정하려고 클릭할 때마다 확대돼버린다.
+          if(distMode||radiusMode) return;
           kmap.setLevel(kmap.getLevel()-1, {anchor:cluster.getCenter()});
         });
         cluster.getClusterMarker().setContent(div);
