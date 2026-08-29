@@ -758,7 +758,7 @@ function placeStoreMarkers(){
   function next(i){
     if(i>=toGeocode.length){ finish(); return; }
     const store=toGeocode[i];
-    geocoder.addAddress(store.address, (result,status)=>{
+    geocoder.addressSearch(store.address, (result,status)=>{
       if(status===kakao.maps.services.Status.OK && result[0]){
         const lat=parseFloat(result[0].y), lng=parseFloat(result[0].x);
         cache[store.id]={lat,lng,addr:store.address}; cacheDirty=true;
