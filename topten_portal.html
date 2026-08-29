@@ -434,6 +434,14 @@ nav button.active{color:#fff;border-bottom-color:var(--accent);background:rgba(2
 
 /* ===== 지역 지도 (카카오맵 · 실제 위치 마커) ===== */
 .map-wrap{max-width:900px;margin:0 auto;}
+.map-search-box{position:relative;max-width:340px;margin:0 auto 14px;}
+.map-search-box input{width:100%;height:38px;padding:0 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;box-sizing:border-box;}
+.map-search-box input:focus{outline:none;border-color:var(--accent2);}
+.map-search-results{position:absolute;top:42px;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.14);max-height:260px;overflow-y:auto;z-index:30;display:none;}
+.map-search-item{padding:9px 12px;font-size:13px;cursor:pointer;border-bottom:1px solid #f0f0f0;}
+.map-search-item:last-child{border-bottom:none;}
+.map-search-item:hover{background:#f5f6fa;}
+.map-search-item .msi-region{color:var(--muted);font-size:11px;margin-left:6px;}
 .map-legend{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:16px;font-size:12px;color:var(--muted);flex-wrap:wrap;}
 .map-legend-bar{width:160px;height:10px;border-radius:5px;background:linear-gradient(90deg,hsl(0,70%,48%),hsl(60,70%,48%),hsl(120,70%,48%));}
 #kakao-map{width:100%;height:520px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);background:#eef0f4;display:flex;align-items:center;justify-content:center;overflow:hidden;}
@@ -561,6 +569,11 @@ nav button.active{color:#fff;border-bottom-color:var(--accent);background:rgba(2
 <!-- ========== 지도 ========== -->
 <div id="page-map" class="page">
   <div class="map-wrap">
+    <div class="map-search-box">
+      <input type="text" id="map-search-input" placeholder="🔍 지도에서 매장명 검색..." autocomplete="off"
+             oninput="onMapSearchInput()" onblur="setTimeout(()=>{document.getElementById('map-search-results').style.display='none';},150)">
+      <div class="map-search-results" id="map-search-results"></div>
+    </div>
     <div class="map-legend">
       <span>◀ 역성장</span>
       <div class="map-legend-bar"></div>
@@ -656,6 +669,7 @@ const KAKAO_APP_KEY = '58eb3b2832d600cc064d9d67a88928fb';
 const GEOCODE_CACHE_KEY = 'topten_geocode_cache_v1';
 let kakaoSdkLoading=false, kakaoMapInited=false, kmap=null, kclusterer=null, kMarkers=[];
 const kMarkerImgCache={};
+let kMarkerById={};   // 매장ID → 마커 (지도 검색에서 특정 매장으로 이동할 때 씀)
 
 function loadGeocodeCache(){
   try{ return JSON.parse(localStorage.getItem(GEOCODE_CACHE_KEY)||'{}'); }catch(e){ return {}; }
@@ -759,6 +773,7 @@ function placeStoreMarkers(){
 function renderMarkers(positions, noAddrCount){
   kMarkers.forEach(m=>m.setMap(null));
   kMarkers=[];
+  kMarkerById={};
   if(kclusterer) kclusterer.clear();
   const bounds=new kakao.maps.LatLngBounds();
   positions.forEach(({store,lat,lng})=>{
@@ -766,6 +781,7 @@ function renderMarkers(positions, noAddrCount){
     const marker=new kakao.maps.Marker({position:latlng, image:getMarkerImage(growthMarkerColor(store.m_growth)), title:store.name});
     kakao.maps.event.addListener(marker,'click',()=>openModal(store.id));
     kMarkers.push(marker);
+    kMarkerById[store.id]=marker;
     bounds.extend(latlng);
   });
   if(!kclusterer){
@@ -774,6 +790,35 @@ function renderMarkers(positions, noAddrCount){
   kclusterer.addMarkers(kMarkers);
   if(positions.length) kmap.setBounds(bounds);
   renderMapSummary(positions.length, noAddrCount);
+}
+
+// ===== 지도 검색창 =====
+// 매장명으로 검색해서 선택하면 해당 마커로 이동 + 클릭 이벤트를 그대로 재사용해
+// 마커를 직접 클릭한 것과 똑같이 매장 상세 모달이 뜨도록 한다.
+function onMapSearchInput(){
+  const q=document.getElementById('map-search-input').value.trim().toLowerCase();
+  const box=document.getElementById('map-search-results');
+  if(!q){ box.style.display='none'; box.innerHTML=''; return; }
+  const matches=STORES.filter(s=>s.area_py!=null && (s.name||'').toLowerCase().includes(q)).slice(0,8);
+  if(!matches.length){
+    box.innerHTML='<div class="map-search-item" style="color:var(--muted);">검색 결과가 없습니다</div>';
+    box.style.display='block';
+    return;
+  }
+  box.innerHTML=matches.map(s=>{
+    const onMap=!!kMarkerById[s.id];
+    return `<div class="map-search-item" onmousedown="goToMapStore('${s.id}')">${s.name}<span class="msi-region">${s.region||''}${onMap?'':' · 지도 표기 준비 중'}</span></div>`;
+  }).join('');
+  box.style.display='block';
+}
+function goToMapStore(id){
+  document.getElementById('map-search-results').style.display='none';
+  document.getElementById('map-search-input').value='';
+  const marker=kMarkerById[id];
+  if(!marker || !kmap) return;   // 아직 지오코딩 중이거나 주소가 없는 매장
+  kmap.setLevel(4);
+  kmap.panTo(marker.getPosition());
+  setTimeout(()=>{ kakao.maps.event.trigger(marker,'click'); }, 300);
 }
 
 function renderMapSummary(geocoded, noAddrCount){
