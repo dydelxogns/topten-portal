@@ -636,12 +636,12 @@ function doLogout(){
   document.getElementById('auto-login-chk').checked=false;
 }
 // 자동로그인 체크
-(function(){
-  try{if(localStorage.getItem(LS_KEY)==='1'){enterApp();return;}}catch(e){}
-})();
-
-// DOM 완전 로드 후 한 번 더 보장
+// DOMContentLoaded에서 처리한다 — 스크립트 전체가 먼저 다 실행되고 나서
+// 호출돼야 PERF_STORES 같은 하단의 const들이 이미 초기화된 상태로 안전하게 쓰인다.
+// (예전에 이 체크를 스크립트 중간에서 즉시 실행했더니, 자동 로그인 상태인 사용자만
+//  "Cannot access 'PERF_STORES' before initialization" 오류로 앱이 깨지는 문제가 있었다.)
 document.addEventListener('DOMContentLoaded', function(){
+  try{if(localStorage.getItem(LS_KEY)==='1'){enterApp();}}catch(e){}
   if(document.getElementById('app').style.display!=='none'){
     try{filterStores();}catch(e){}
     try{buildSummary();}catch(e){}
@@ -803,8 +803,6 @@ function initApp(){
   try{buildSummary();}catch(e){console.error('buildSummary:',e);}
   try{buildFilters();}catch(e){console.error('buildFilters:',e);}
   try{filterStores();}catch(e){console.error('filterStores:',e);}
-  try{buildTaskGrids();}catch(e){console.error('buildTaskGrids:',e);}
-  try{loadDashboard();}catch(e){console.error('loadDashboard:',e);}
   try{
     document.querySelectorAll('#open-store-dl,#close-store-dl').forEach(dl=>{
       dl.innerHTML=PERF_STORES.map(s=>`<option value="${s.name}">`).join('');
