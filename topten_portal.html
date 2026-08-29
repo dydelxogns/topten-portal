@@ -578,7 +578,7 @@ nav button.active{color:#fff;border-bottom-color:var(--accent);background:rgba(2
       <span>◀ 역성장</span>
       <div class="map-legend-bar"></div>
       <span>성장 ▶</span>
-      <span style="margin-left:10px;color:#bbb;">(색: 월간 신장율 · 마커 클릭 시 매장 상세)</span>
+      <span style="margin-left:10px;color:#bbb;">(색: 월간 신장율(묶인 숫자는 평균) · 마커 클릭 시 매장 상세)</span>
     </div>
     <div id="kakao-map"></div>
     <div class="map-summary-row" id="region-map-summary"></div>
@@ -779,13 +779,37 @@ function renderMarkers(positions, noAddrCount){
   positions.forEach(({store,lat,lng})=>{
     const latlng=new kakao.maps.LatLng(lat,lng);
     const marker=new kakao.maps.Marker({position:latlng, image:getMarkerImage(growthMarkerColor(store.m_growth)), title:store.name});
+    marker.growth=store.m_growth; // 클러스터 평균 신장율 계산에 사용
     kakao.maps.event.addListener(marker,'click',()=>openModal(store.id));
     kMarkers.push(marker);
     kMarkerById[store.id]=marker;
     bounds.extend(latlng);
   });
   if(!kclusterer){
-    kclusterer=new kakao.maps.MarkerClusterer({map:kmap, averageCenter:true, minLevel:7});
+    // disableClickZoom:true로 기본 클릭-확대 동작을 끄고 아래 clusterclick에서 직접 구현한다.
+    // 이유: 'clustered' 이벤트에서 setContent()로 클러스터 마커 내용을 바꾸면
+    // 카카오 기본 클릭 동작이 깨지는 경우가 있다(카카오 데브톡에서 확인된 이슈).
+    kclusterer=new kakao.maps.MarkerClusterer({map:kmap, averageCenter:true, minLevel:7, disableClickZoom:true});
+    // 클러스터 안에 묶인 매장들의 평균 신장율로 클러스터 마커 색을 칠한다.
+    // 개별 마커와 같은 빨강(역성장)~초록(성장) 그라데이션을 그대로 재사용(growthMarkerColor).
+    kakao.maps.event.addListener(kclusterer, 'clustered', function(clusters){
+      clusters.forEach(function(cluster){
+        const ms=cluster.getMarkers();
+        const growths=ms.map(m=>m.growth).filter(g=>g!=null);
+        const avg=growths.length ? growths.reduce((a,b)=>a+b,0)/growths.length : null;
+        const color=growthMarkerColor(avg);
+        const n=ms.length;
+        const size=n<10?34:(n<30?42:(n<80?50:58));
+        cluster.getClusterMarker().setContent(
+          '<div style="cursor:pointer;width:'+size+'px;height:'+size+'px;line-height:'+size+'px;'+
+          'background:'+color+';border-radius:'+(size/2)+'px;color:#fff;text-align:center;'+
+          'font-weight:bold;font-size:13px;box-shadow:0 1px 4px rgba(0,0,0,.3);border:2px solid #fff;">'+n+'</div>'
+        );
+      });
+    });
+    kakao.maps.event.addListener(kclusterer, 'clusterclick', function(cluster){
+      kmap.setLevel(kmap.getLevel()-1, {anchor:cluster.getCenter()});
+    });
   }
   kclusterer.addMarkers(kMarkers);
   if(positions.length) kmap.setBounds(bounds);
