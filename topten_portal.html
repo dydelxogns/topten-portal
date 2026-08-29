@@ -614,6 +614,8 @@ nav button.active{color:#fff;border-bottom-color:var(--accent);background:rgba(2
     <div class="map-tools-row">
       <button type="button" id="map-dist-btn" class="map-tool-btn" onclick="toggleDistMode()">📏 거리재기 시작</button>
       <button type="button" class="map-tool-btn" onclick="clearDistMeasure()">🗑️ 거리 지우기</button>
+      <button type="button" id="map-radius-btn" class="map-tool-btn" onclick="toggleRadiusMode()">⭕ 반경재기 시작</button>
+      <button type="button" class="map-tool-btn" onclick="clearRadiusMeasure()">🗑️ 반경 지우기</button>
     </div>
     <div id="kakao-map"></div>
     <div class="map-summary-row" id="region-map-summary"></div>
@@ -710,6 +712,7 @@ let kLabels=[];        // 마커 밑에 매장명을 보여주는 CustomOverlay 
 
 // ===== 거리재기 =====
 let distMode=false, distLine=null, distDots=[], distInfoOverlay=null;
+let radiusMode=false, radiusCenter=null, radiusCircle=null, radiusCenterDot=null, radiusInfoOverlay=null;
 
 function loadGeocodeCache(){
   try{ return JSON.parse(localStorage.getItem(GEOCODE_CACHE_KEY)||'{}'); }catch(e){ return {}; }
@@ -755,6 +758,7 @@ function initKakaoMapIfNeeded(){
     kmap=new kakao.maps.Map(container, {center:new kakao.maps.LatLng(36.2,127.9), level:13});
     kakao.maps.event.addListener(kmap, 'zoom_changed', updateLabelVisibility);
     kakao.maps.event.addListener(kmap, 'click', onDistMapClick);
+    kakao.maps.event.addListener(kmap, 'click', onRadiusMapClick);
     placeStoreMarkers();
   });
 }
@@ -791,14 +795,67 @@ function clearDistMeasure(){
 }
 function toggleDistMode(){
   distMode=!distMode;
-  if(distMode) clearDistMeasure(); // 새로 재기 시작하면 이전에 그린 선은 지운다
+  if(distMode){
+    clearDistMeasure(); // 새로 재기 시작하면 이전에 그린 선은 지운다
+    if(radiusMode) toggleRadiusMode(); // 거리재기와 반경재기를 동시에 켜두면 클릭이 서로 꼬이므로 하나만 켠다
+  }
   const btn=document.getElementById('map-dist-btn');
   if(btn){
     btn.classList.toggle('active', distMode);
     btn.textContent = distMode ? '✅ 거리재기 종료' : '📏 거리재기 시작';
   }
   const container=document.getElementById('kakao-map');
-  if(container) container.style.cursor = distMode ? 'crosshair' : '';
+  if(container) container.style.cursor = (distMode||radiusMode) ? 'crosshair' : '';
+}
+
+// ---- 반경재기: 첫 클릭으로 중심을 찍고, 이후 클릭마다 그 지점까지 거리를 반경으로 하는 원을 그린다 ----
+// (네이버맵의 "반경" 도구와 동일한 동작. 드래그 대신 클릭으로 반경을 조절한다.)
+// 두 점 사이 거리는 거리재기와 마찬가지로 kakao.maps.Polyline.getLength()로 계산한다 —
+// 지도에 안 붙인(map 옵션 없는) 임시 Polyline이어도 getLength()는 정상 동작한다.
+function onRadiusMapClick(mouseEvent){
+  if(!radiusMode) return;
+  const pos=mouseEvent.latLng;
+  if(!radiusCenter){
+    radiusCenter=pos;
+    radiusCenterDot=new kakao.maps.CustomOverlay({map:kmap, position:pos, content:'<div class="dist-dot"></div>', zIndex:5});
+    return;
+  }
+  const radiusM=new kakao.maps.Polyline({path:[radiusCenter,pos]}).getLength();
+  if(!radiusCircle){
+    radiusCircle=new kakao.maps.Circle({
+      map:kmap, center:radiusCenter, radius:radiusM,
+      strokeWeight:3, strokeColor:'#8e44ad', strokeOpacity:.85, strokeStyle:'solid',
+      fillColor:'#8e44ad', fillOpacity:.15
+    });
+  } else {
+    radiusCircle.setRadius(radiusM);
+  }
+  showRadiusInfo(radiusM, pos);
+}
+function showRadiusInfo(radiusM, pos){
+  const content=`<div class="dist-info-box">반경 <b>${fmtDist(radiusM)}</b></div>`;
+  if(radiusInfoOverlay){ radiusInfoOverlay.setPosition(pos); radiusInfoOverlay.setContent(content); }
+  else { radiusInfoOverlay=new kakao.maps.CustomOverlay({map:kmap, position:pos, content, yAnchor:1.6, zIndex:6}); }
+}
+function clearRadiusMeasure(){
+  radiusCenter=null;
+  if(radiusCircle){ radiusCircle.setMap(null); radiusCircle=null; }
+  if(radiusCenterDot){ radiusCenterDot.setMap(null); radiusCenterDot=null; }
+  if(radiusInfoOverlay){ radiusInfoOverlay.setMap(null); radiusInfoOverlay=null; }
+}
+function toggleRadiusMode(){
+  radiusMode=!radiusMode;
+  if(radiusMode){
+    clearRadiusMeasure(); // 새로 재기 시작하면 이전 원은 지운다
+    if(distMode) toggleDistMode(); // 마찬가지로 거리재기가 켜져 있으면 끈다
+  }
+  const btn=document.getElementById('map-radius-btn');
+  if(btn){
+    btn.classList.toggle('active', radiusMode);
+    btn.textContent = radiusMode ? '✅ 반경재기 종료' : '⭕ 반경재기 시작';
+  }
+  const container=document.getElementById('kakao-map');
+  if(container) container.style.cursor = (distMode||radiusMode) ? 'crosshair' : '';
 }
 
 // 클러스터가 풀려서 매장이 하나씩 보일 만큼 확대했을 때만 매장명 라벨을 켠다.
