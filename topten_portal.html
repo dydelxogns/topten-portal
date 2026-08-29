@@ -335,7 +335,31 @@ nav button.active{color:#fff;border-bottom-color:var(--accent);background:rgba(2
 .gauge-sub   { font-size:11px; color:#666; margin-top:3px; }
 .gauge-pct   { font-size:12px; font-weight:700; }
 
-/* 채널 채널 카드 그리드 */
+/* 채널별 상세: 계층형 표 — 총계/성인매장/밸런스단독/이비즈(굵게, 배경 톤) 아래에
+   실제 세부 채널(가두점 등)을 들여쓰기로 붙여서 상하 관계가 바로 보이게 한다. */
+.ch-table-wrap { overflow-x:auto; border:1px solid #e8eaf0; border-radius:12px; }
+.ch-table { width:100%; border-collapse:collapse; font-size:13px; min-width:560px; }
+.ch-table th {
+  text-align:right; padding:10px 12px; font-size:11px; color:var(--muted); font-weight:700;
+  background:#f7f8fb; border-bottom:1px solid #e8eaf0; white-space:nowrap;
+}
+.ch-table th:first-child { text-align:left; }
+.ch-table td { padding:10px 12px; text-align:right; border-bottom:1px solid #f0f1f4; white-space:nowrap; }
+.ch-table td.cht-name { text-align:left; }
+.ch-table tr:last-child td { border-bottom:none; }
+.ch-table tr.cht-total td { background:#1a2436; color:#fff; font-weight:700; }
+.ch-table tr.cht-total .cht-cnt-chg { color:#9fd6b8 !important; }
+.ch-table tr.cht-section td { background:#f2f4f8; font-weight:700; color:#1a2436; }
+.ch-table tr.cht-sub td { color:#3a4256; }
+.ch-table tr.cht-sub .cht-name { padding-left:28px; font-weight:400; color:#5b6272; }
+.ch-table tr.cht-sub .cht-name::before { content:'└'; color:#c3c8d4; margin-right:6px; }
+.cht-cnt-chg { font-size:11px; margin-left:4px; }
+.cht-bar-wrap { display:inline-flex; align-items:center; gap:6px; justify-content:flex-end; min-width:76px; }
+.cht-bar-t { width:44px; height:6px; background:#e8e9ee; border-radius:3px; overflow:hidden; flex-shrink:0; }
+.ch-table tr.cht-total .cht-bar-t { background:rgba(255,255,255,.22); }
+.cht-bar-f { display:block; height:100%; border-radius:3px; }
+
+/* 채널 카드 그리드 (구버전, 남겨둠) */
 .ch-cards-grid {
   display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px;
 }
@@ -1100,64 +1124,50 @@ function buildSummary(){
     }).join('');
   }
 
+  // 계층형 표: 총계 → 성인매장 → (가두점/백화점아울렛/쇼핑몰/마트) → 밸런스 단독 →
+  // (B)백화점/B)쇼핑몰/B)마트) → 이비즈 순서를 그대로 살려서, 상하 관계(누가 누구의 하위 채널인지)가
+  // 들여쓰기와 배경 톤만으로 바로 보이게 한다. 예전 카드 그리드는 10개 채널이 전부 같은 크기라
+  // 총계·성인매장·하위채널의 위계가 안 보인다는 피드백(전무님까지 보는 사이트라 특히 중요)으로 교체.
   function renderCards(tab){
-    const mainChs = SUMMARY.channels.filter(r=>r.row_type!=='sub'||true);
-    const colorMap={
-      'total':'cc-total','section':'cc-adult','sub':'cc-sub',
-      'balance':'cc-balance','ebiz':'cc-ebiz'
-    };
-    const barColors={
-      'total':'#1a1a2e','section':'#e67e22','sub':'#3498db',
-      'balance':'#e67e22','ebiz':'#8e44ad'
-    };
+    const total = SUMMARY.channels.find(r=>r.row_type==='total') || {};
+    const barColors={ total:'#c9cdd6', section:'#e67e22', sub:'#3498db' };
     // Fix5: 합계 기준으로 비중 계산 (성인매장 기준 사용 시 성인=100% 오류 발생)
     const totalW = total.w_actual||1;
     const totalM = total.m_actual||1;
     const el=document.getElementById('ch-cards-grid');
     if(!el) return;
-    el.innerHTML=SUMMARY.channels.map(r=>{
+    // 이 컨테이너는 옛 카드 그리드 시절 CSS(.ch-cards-grid, display:grid + auto-fill)가 아직 붙어있다.
+    // 표는 카드 한 장짜리 grid-item으로 취급되면서 첫 칼럼(약 220px)만 차지하고 나머지는 빈 공간으로
+    // 남는 버그가 있었다 — block으로 강제해서 표가 패널 전체 폭을 꽉 채우게 한다.
+    el.style.display='block';
+    const rows = SUMMARY.channels.map(r=>{
       const actual  = tab==='w'?r.w_actual:r.m_actual;
       const growth  = tab==='w'?r.w_growth:r.m_growth;
       const same    = tab==='w'?r.w_same:r.m_same;
       const achieve = tab==='w'?r.w_achieve:r.m_achieve;
       const maxRef  = tab==='w'?totalW:totalM;
       const barPct  = actual!=null&&maxRef>0?Math.min(100,(actual/maxRef)*100):0;
-      const cc      = colorMap[r.row_type]||'cc-sub';
+      const rowCls  = r.row_type==='total'?'cht-total':(r.row_type==='section'?'cht-section':'cht-sub');
       const bc      = barColors[r.row_type]||'#3498db';
-      const prefix  = r.row_type==='sub'?'└ ':'';
-      const cnt     = r.store_count!=null?`${r.store_count}개`:'';
-      const chg     = r.store_chg!=null?` <span style="color:${r.store_chg>=0?'#27ae60':'#e74c3c'};font-size:10px;">(${r.store_chg>=0?'+':''}${r.store_chg})</span>`:'';
-      return `<div class="ch-card ${cc}">
-        <div class="cc-head">
-          <div class="cc-name">${prefix}${r.channel}</div>
-          <div class="cc-cnt">${cnt}${chg}</div>
-        </div>
-        <div class="cc-kpis">
-          <div class="cc-kpi">
-            <div class="ck-lbl">실적(백만)</div>
-            <div class="ck-val">${actual!=null?Math.round(actual).toLocaleString():'-'}</div>
-          </div>
-          <div class="cc-kpi">
-            <div class="ck-lbl">달성율</div>
-            <div class="ck-val">${achieve!=null?Math.round(achieve)+'%':'-'}</div>
-          </div>
-          <div class="cc-kpi">
-            <div class="ck-lbl">신장율</div>
-            <div class="ck-val" style="font-size:14px;"><span class="${pctClass(growth)}">${fmtPct(growth)}</span></div>
-          </div>
-          <div class="cc-kpi">
-            <div class="ck-lbl">동매장신장</div>
-            <div class="ck-val" style="font-size:14px;"><span class="${pctClass(same)}">${fmtPct(same)}</span></div>
-          </div>
-        </div>
-        <div class="cc-bar-row">
-          <div class="cc-bar-lbl"><span>실적 비중</span><span style="color:${bc}">${Math.round(barPct)}%</span></div>
-          <div class="cc-bar-t">
-            <div class="cc-bar-f" style="width:${barPct}%;background:${bc};"></div>
-          </div>
-        </div>
-      </div>`;
+      const cnt     = r.store_count!=null?`${r.store_count}개`:'-';
+      const chg     = (r.store_chg!=null && r.store_chg!==0)
+        ? `<span class="cht-cnt-chg" style="color:${r.store_chg>=0?'#27ae60':'#e74c3c'};">${r.store_chg>=0?'+':''}${r.store_chg}</span>` : '';
+      return `<tr class="${rowCls}">
+        <td class="cht-name">${r.channel}</td>
+        <td class="cht-num">${cnt} ${chg}</td>
+        <td class="cht-num">${actual!=null?Math.round(actual).toLocaleString():'-'}</td>
+        <td class="cht-num"><span class="cht-bar-wrap"><span>${Math.round(barPct)}%</span><span class="cht-bar-t"><span class="cht-bar-f" style="width:${barPct}%;background:${bc};"></span></span></span></td>
+        <td class="cht-num">${achieve!=null?Math.round(achieve)+'%':'-'}</td>
+        <td class="cht-num"><span class="${pctClass(growth)}">${fmtPct(growth)}</span></td>
+        <td class="cht-num"><span class="${pctClass(same)}">${fmtPct(same)}</span></td>
+      </tr>`;
     }).join('');
+    el.innerHTML = `<div class="ch-table-wrap"><table class="ch-table">
+      <thead><tr>
+        <th>채널</th><th>매장수</th><th>실적(백만)</th><th>실적 비중</th><th>달성율</th><th>신장율</th><th>동매장신장</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
   }
 
   function renderRankBox(list,isTop){
