@@ -445,6 +445,7 @@ nav button.active{color:#fff;border-bottom-color:var(--accent);background:rgba(2
 .map-legend{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:16px;font-size:12px;color:var(--muted);flex-wrap:wrap;}
 .map-legend-bar{width:160px;height:10px;border-radius:5px;background:linear-gradient(90deg,hsl(0,70%,48%),hsl(60,70%,48%),hsl(120,70%,48%));}
 #kakao-map{width:100%;height:520px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);background:#eef0f4;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.map-marker-label{pointer-events:none;white-space:nowrap;background:rgba(255,255,255,.92);border:1px solid rgba(0,0,0,.12);border-radius:5px;padding:1px 6px;font-size:11px;font-weight:600;color:#1a2436;box-shadow:0 1px 3px rgba(0,0,0,.15);}
 .map-loading,.map-error{font-size:13px;color:var(--muted);text-align:center;padding:20px;}
 .map-error{color:var(--accent);}
 .map-summary-row{display:flex;gap:12px;justify-content:center;margin-top:18px;flex-wrap:wrap;}
@@ -667,9 +668,11 @@ document.addEventListener('DOMContentLoaded', function(){
 // 지도 탭을 클릭한 시점에만 SDK를 불러온다(비활성 상태에서 불필요한 API 호출 방지).
 const KAKAO_APP_KEY = '58eb3b2832d600cc064d9d67a88928fb';
 const GEOCODE_CACHE_KEY = 'topten_geocode_cache_v1';
+const MAP_CLUSTER_MIN_LEVEL = 7; // 이 레벨(포함) 이상이면 클러스터로 묶임 → 매장명 라벨은 이보다 확대했을 때만 보여준다
 let kakaoSdkLoading=false, kakaoMapInited=false, kmap=null, kclusterer=null, kMarkers=[];
 const kMarkerImgCache={};
 let kMarkerById={};   // 매장ID → 마커 (지도 검색에서 특정 매장으로 이동할 때 씀)
+let kLabels=[];        // 마커 밑에 매장명을 보여주는 CustomOverlay 목록(확대했을 때만 표시)
 
 function loadGeocodeCache(){
   try{ return JSON.parse(localStorage.getItem(GEOCODE_CACHE_KEY)||'{}'); }catch(e){ return {}; }
@@ -713,8 +716,17 @@ function initKakaoMapIfNeeded(){
     kakaoMapInited=true;
     container.innerHTML='';
     kmap=new kakao.maps.Map(container, {center:new kakao.maps.LatLng(36.2,127.9), level:13});
+    kakao.maps.event.addListener(kmap, 'zoom_changed', updateLabelVisibility);
     placeStoreMarkers();
   });
+}
+
+// 클러스터가 풀려서 매장이 하나씩 보일 만큼 확대했을 때만 매장명 라벨을 켠다.
+// (클러스터로 묶인 상태에서 라벨까지 다 보이면 지도가 글자로 뒤덮여 오히려 안 보임)
+function updateLabelVisibility(){
+  if(!kmap) return;
+  const show = kmap.getLevel() < MAP_CLUSTER_MIN_LEVEL;
+  kLabels.forEach(l=>l.setMap(show ? kmap : null));
 }
 
 function growthMarkerColor(g){
@@ -774,6 +786,8 @@ function renderMarkers(positions, noAddrCount){
   kMarkers.forEach(m=>m.setMap(null));
   kMarkers=[];
   kMarkerById={};
+  kLabels.forEach(l=>l.setMap(null));
+  kLabels=[];
   if(kclusterer) kclusterer.clear();
   const bounds=new kakao.maps.LatLngBounds();
   positions.forEach(({store,lat,lng})=>{
@@ -784,6 +798,15 @@ function renderMarkers(positions, noAddrCount){
     kMarkers.push(marker);
     kMarkerById[store.id]=marker;
     bounds.extend(latlng);
+    // 마커 아이콘 바로 밑에 매장명을 표시하는 라벨. 클러스터러가 관리하지 않는 별도 오버레이라
+    // updateLabelVisibility()에서 확대 레벨에 따라 직접 지도에 붙였다 뗐다 한다.
+    const label=new kakao.maps.CustomOverlay({
+      position: latlng,
+      content: `<div class="map-marker-label">${store.name}</div>`,
+      yAnchor: -0.35,
+      clickable: false
+    });
+    kLabels.push(label);
   });
   if(!kclusterer){
     // disableClickZoom:true로 카카오 기본 클릭-확대 동작을 끈다.
@@ -817,6 +840,7 @@ function renderMarkers(positions, noAddrCount){
   }
   kclusterer.addMarkers(kMarkers);
   if(positions.length) kmap.setBounds(bounds);
+  updateLabelVisibility();
   renderMapSummary(positions.length, noAddrCount);
 }
 
