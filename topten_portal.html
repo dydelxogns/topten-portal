@@ -786,9 +786,12 @@ function renderMarkers(positions, noAddrCount){
     bounds.extend(latlng);
   });
   if(!kclusterer){
-    // disableClickZoom:true로 기본 클릭-확대 동작을 끄고 아래 clusterclick에서 직접 구현한다.
-    // 이유: 'clustered' 이벤트에서 setContent()로 클러스터 마커 내용을 바꾸면
-    // 카카오 기본 클릭 동작이 깨지는 경우가 있다(카카오 데브톡에서 확인된 이슈).
+    // disableClickZoom:true로 카카오 기본 클릭-확대 동작을 끈다.
+    // 아래 'clustered'에서 setContent()로 클러스터 마커 내용을 문자열로 바꾸면
+    // 카카오가 내부적으로 붙여둔 클릭 핸들러가 함께 날아가 클릭이 아예 안 먹는 문제가 있었다
+    // (카카오 데브톡에서 확인된 이슈: https://devtalk.kakao.com/t/markerclusterer-clustered-setcontent/83564).
+    // 그래서 문자열 대신 실제 DOM 엘리먼트를 만들어 거기에 직접 click 리스너를 붙인다 —
+    // 이러면 카카오의 내부 클릭 라우팅과 무관하게 항상 동작한다.
     kclusterer=new kakao.maps.MarkerClusterer({map:kmap, averageCenter:true, minLevel:7, disableClickZoom:true});
     // 클러스터 안에 묶인 매장들의 평균 신장율로 클러스터 마커 색을 칠한다.
     // 개별 마커와 같은 빨강(역성장)~초록(성장) 그라데이션을 그대로 재사용(growthMarkerColor).
@@ -800,15 +803,16 @@ function renderMarkers(positions, noAddrCount){
         const color=growthMarkerColor(avg);
         const n=ms.length;
         const size=n<10?34:(n<30?42:(n<80?50:58));
-        cluster.getClusterMarker().setContent(
-          '<div style="cursor:pointer;width:'+size+'px;height:'+size+'px;line-height:'+size+'px;'+
+        const div=document.createElement('div');
+        div.style.cssText='cursor:pointer;width:'+size+'px;height:'+size+'px;line-height:'+size+'px;'+
           'background:'+color+';border-radius:'+(size/2)+'px;color:#fff;text-align:center;'+
-          'font-weight:bold;font-size:13px;box-shadow:0 1px 4px rgba(0,0,0,.3);border:2px solid #fff;">'+n+'</div>'
-        );
+          'font-weight:bold;font-size:13px;box-shadow:0 1px 4px rgba(0,0,0,.3);border:2px solid #fff;';
+        div.textContent=n;
+        div.addEventListener('click', function(){
+          kmap.setLevel(kmap.getLevel()-1, {anchor:cluster.getCenter()});
+        });
+        cluster.getClusterMarker().setContent(div);
       });
-    });
-    kakao.maps.event.addListener(kclusterer, 'clusterclick', function(cluster){
-      kmap.setLevel(kmap.getLevel()-1, {anchor:cluster.getCenter()});
     });
   }
   kclusterer.addMarkers(kMarkers);
