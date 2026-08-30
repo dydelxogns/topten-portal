@@ -368,6 +368,12 @@ nav button.active{color:#fff;border-bottom-color:var(--accent);background:rgba(2
 .ch-table tr.cht-sub td { color:#3a4256; }
 .ch-table tr.cht-sub .cht-name { padding-left:28px; font-weight:400; color:#5b6272; }
 .ch-table tr.cht-sub .cht-name::before { content:'└'; color:#c3c8d4; margin-right:6px; }
+/* 그룹별 실적 탭: 담당자/지역 비교 + 수익성 워치리스트 */
+.watchlist-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+@media(max-width:760px){ .watchlist-grid{grid-template-columns:1fr;} }
+.wl-sub-title { font-size:12px; font-weight:800; color:#1a2436; margin-bottom:8px; }
+.wl-note { font-size:11px; color:#999; margin-top:10px; }
+.wl-val-bad { color:var(--danger); font-weight:800; }
 .cht-cnt-chg { font-size:11px; margin-left:4px; }
 .cht-bar-wrap { display:inline-flex; align-items:center; gap:6px; justify-content:flex-end; min-width:76px; }
 .cht-bar-t { width:44px; height:6px; background:#e8e9ee; border-radius:3px; overflow:hidden; flex-shrink:0; }
@@ -535,6 +541,7 @@ nav button.active{color:#fff;border-bottom-color:var(--accent);background:rgba(2
   <button class="active" onclick="showPage('summary',this)">📊 현황판</button>
   <button onclick="showPage('store',this)">🏪 매장 검색</button>
   <button onclick="showPage('map',this)">🗺️ 지도</button>
+  <button onclick="showPage('group',this)">👥 그룹별 실적</button>
 </nav>
 
 <!-- ========== 현황판 ========== -->
@@ -646,6 +653,52 @@ nav button.active{color:#fff;border-bottom-color:var(--accent);background:rgba(2
     <div id="kakao-map"></div>
     <div class="map-summary-row" id="region-map-summary"></div>
   </div>
+</div>
+
+<!-- ========== 그룹별 실적 (담당자별/지역별 + 수익성 워치리스트) ========== -->
+<div id="page-group" class="page">
+<div class="db-wrap">
+
+  <div class="db-panel">
+    <div class="db-panel-hd">
+      <div class="ph-title">👥 담당자별 / 지역별 실적 비교</div>
+      <div class="ph-tabs">
+        <button class="ph-tab active" id="grp-tab-mgr" onclick="setGroupTab('mgr')">담당자별</button>
+        <button class="ph-tab" id="grp-tab-region" onclick="setGroupTab('region')">지역별</button>
+      </div>
+    </div>
+    <div class="db-panel-body">
+      <div class="ch-table-wrap"><table class="ch-table" id="group-table">
+        <thead><tr>
+          <th class="cht-name">구분</th><th>매장수</th><th>월간실적</th><th>월간신장율</th>
+          <th>주간신장율</th><th>연간실적</th><th>연간신장율</th>
+        </tr></thead>
+        <tbody id="group-table-body"></tbody>
+      </table></div>
+      <div class="wl-note">* 실적 단위: 백만원 · 신장율은 그룹 내 매장들의 실적 합계를 기준으로 계산(전년 동기 대비) · 기본 정렬: 월간실적 내림차순</div>
+    </div>
+  </div>
+
+  <div class="db-panel">
+    <div class="db-panel-hd">
+      <div class="ph-title">⚠️ 수익성 워치리스트 (하위 10개 매장 기준)</div>
+    </div>
+    <div class="db-panel-body">
+      <div class="top-rank-grid">
+        <div class="top-rank-box">
+          <div class="trb-head trb-worst">📉 영업이익률 하위 10개 매장</div>
+          <div class="trb-body" id="wl-op-body"></div>
+        </div>
+        <div class="top-rank-box">
+          <div class="trb-head trb-worst">📈 인건비율 상위 10개 매장</div>
+          <div class="trb-body" id="wl-lc-body"></div>
+        </div>
+      </div>
+      <div class="wl-note">* 26년 누계 기준 영업이익률(오름차순 하위 10개) / 인건비율(내림차순 상위 10개) · 값이 없는 매장은 순위 산정에서 제외됩니다. 두 지표 모두 매장 수익성에 안 좋은 신호라 동일하게 빨간색으로 표기했습니다.</div>
+    </div>
+  </div>
+
+</div>
 </div>
 
 <div id="page-store" class="page">
@@ -1121,11 +1174,136 @@ function initApp(){
   try{buildSummary();}catch(e){console.error('buildSummary:',e);}
   try{buildFilters();}catch(e){console.error('buildFilters:',e);}
   try{filterStores();}catch(e){console.error('filterStores:',e);}
+  try{renderGroupTable();}catch(e){console.error('renderGroupTable:',e);}
+  try{renderWatchlist();}catch(e){console.error('renderWatchlist:',e);}
   try{
     document.querySelectorAll('#open-store-dl,#close-store-dl').forEach(dl=>{
       dl.innerHTML=PERF_STORES.map(s=>`<option value="${s.name}">`).join('');
     });
   }catch(e){}
+}
+
+// ===== 그룹별 실적 (담당자별/지역별) =====
+// 그룹 합산 신장율은 단순 매장별 %의 평균이 아니라, 각 매장의 신장율을 역산해
+// "전년 동기 실적"을 구한 뒤 (그룹 합계 - 그룹 전년 합계) / 그룹 전년 합계 로 계산한다.
+// (연간 신장율 계산에 쓰는 year_totals()와 동일한 접근 — 매장이 많은 그룹이 신장율에
+//  더 크게 반영되도록 하기 위함. growth가 없는 매장은 실적 합계엔 들어가지만 신장율
+//  역산에서는 빠진다.)
+function aggregateGroups(field){
+  const groups={};
+  PERF_STORES.forEach(s=>{
+    const key=(field==='mgr'?s.manager:s.region)||'미지정';
+    if(!groups[key]) groups[key]={name:key,cnt:0,
+      w_sum:0,w_has:false,w_cur_g:0,w_prev_g:0,
+      m_sum:0,m_has:false,m_cur_g:0,m_prev_g:0,
+      y_sum:0,y_has:false,y_cur_g:0,y_prev_g:0};
+    const g=groups[key];
+    g.cnt++;
+    if(s.w_actual!=null){ g.w_sum+=s.w_actual; g.w_has=true;
+      if(s.w_growth!=null && s.w_growth!==-100){ g.w_cur_g+=s.w_actual; g.w_prev_g+=s.w_actual/(1+s.w_growth/100); } }
+    if(s.m_actual!=null){ g.m_sum+=s.m_actual; g.m_has=true;
+      if(s.m_growth!=null && s.m_growth!==-100){ g.m_cur_g+=s.m_actual; g.m_prev_g+=s.m_actual/(1+s.m_growth/100); } }
+    if(s.y_actual!=null){ g.y_sum+=s.y_actual; g.y_has=true;
+      if(s.y_growth!=null && s.y_growth!==-100){ g.y_cur_g+=s.y_actual; g.y_prev_g+=s.y_actual/(1+s.y_growth/100); } }
+  });
+  const rows=Object.values(groups).map(g=>({
+    name:g.name, cnt:g.cnt,
+    w_actual:g.w_has?g.w_sum:null, w_growth:g.w_prev_g>0?((g.w_cur_g-g.w_prev_g)/g.w_prev_g*100):null,
+    m_actual:g.m_has?g.m_sum:null, m_growth:g.m_prev_g>0?((g.m_cur_g-g.m_prev_g)/g.m_prev_g*100):null,
+    y_actual:g.y_has?g.y_sum:null, y_growth:g.y_prev_g>0?((g.y_cur_g-g.y_prev_g)/g.y_prev_g*100):null,
+  }));
+  if(field==='mgr'){
+    // 담당자별은 실적순이 아니라 지정된 Cluster Leader 순서로 고정 정렬.
+    // 목록에 없는 담당자(신규/미배정 등)는 뒤에 실적 내림차순으로 붙인다.
+    rows.sort((a,b)=>{
+      const ia=MGR_ORDER.indexOf(a.name), ib=MGR_ORDER.indexOf(b.name);
+      const ra=ia===-1?999:ia, rb=ib===-1?999:ib;
+      if(ra!==rb) return ra-rb;
+      return (b.m_actual||0)-(a.m_actual||0);
+    });
+  } else {
+    rows.sort((a,b)=>(b.m_actual||0)-(a.m_actual||0));
+  }
+  return rows;
+}
+// 담당자 표시 순서 (Cluster Leader 번호 = 이 배열의 인덱스+1)
+const MGR_ORDER=['정동길','엄금란','조민욱','조남오','공석','황민아','이용주','김아경','엄초희','이용수'];
+window._groupTab=window._groupTab||'mgr';
+function setGroupTab(t){
+  window._groupTab=t;
+  const bm=document.getElementById('grp-tab-mgr'), br=document.getElementById('grp-tab-region');
+  if(bm) bm.classList.toggle('active',t==='mgr');
+  if(br) br.classList.toggle('active',t==='region');
+  renderGroupTable();
+}
+function renderGroupTable(){
+  const tbody=document.getElementById('group-table-body');
+  if(!tbody) return;
+  const tab=window._groupTab||'mgr';
+  const rows=aggregateGroups(tab);
+  const mv=v=>v!=null?Math.round(v).toLocaleString():'-';
+  const totCnt=PERF_STORES.length;
+  const totM=rows.reduce((a,r)=>a+(r.m_actual||0),0);
+  const totY=rows.reduce((a,r)=>a+(r.y_actual||0),0);
+  let html=`<tr class="cht-total">
+    <td class="cht-name">전체 합계</td><td>${totCnt}개</td>
+    <td>${mv(totM)}</td><td>-</td><td>-</td><td>${mv(totY)}</td><td>-</td>
+  </tr>`;
+  html+=rows.map(r=>{
+    // 담당자별 탭에서는 매장명 앞에 지정된 순서의 "Cluster Leader N"을 붙인다.
+    let label=r.name;
+    if(tab==='mgr'){
+      const idx=MGR_ORDER.indexOf(r.name);
+      if(idx!==-1) label=`Cluster Leader ${idx+1} ${r.name}`;
+    }
+    return `<tr>
+    <td class="cht-name">${label}</td>
+    <td>${r.cnt}개</td>
+    <td>${mv(r.m_actual)}</td>
+    <td class="${pctClass(r.m_growth)}">${fmtPct1(r.m_growth)}</td>
+    <td class="${pctClass(r.w_growth)}">${fmtPct1(r.w_growth)}</td>
+    <td>${mv(r.y_actual)}</td>
+    <td class="${pctClass(r.y_growth)}">${fmtPct1(r.y_growth)}</td>
+  </tr>`;
+  }).join('');
+  tbody.innerHTML=html;
+}
+
+// ===== 수익성 워치리스트 (하위 10개 매장 기준) =====
+// 현황판의 "매장별 신장율 랭킹"(top-rank-box/trb-*)과 같은 카드형 랭킹 스타일을 재사용한다.
+// 영업이익률이 낮은 것도, 인건비율이 높은 것도 둘 다 안 좋은 신호라서 TOP10처럼 초록으로
+// 표시하지 않고 두 리스트 모두 WORST10과 같은 빨간 계열로 통일했다.
+function renderWatchlist(){
+  const bodyOp=document.getElementById('wl-op-body');
+  const bodyLc=document.getElementById('wl-lc-body');
+  if(!bodyOp||!bodyLc) return;
+  const fmtP=v=>v!=null?(v*100).toFixed(1)+'%':'-';
+  const badge=i=>i===0?'gold':i===1?'silver':i===2?'bronze':'plain';
+  function renderList(list,valFn){
+    if(!list.length) return '<div style="padding:20px;color:#aaa;text-align:center;">데이터 없음</div>';
+    const maxAbs=Math.max(...list.map(s=>Math.abs(valFn(s))))||1;
+    return list.map((s,i)=>{
+      const v=valFn(s);
+      const barW=Math.min(100,(Math.abs(v)/maxAbs)*100);
+      return `<div class="trb-item">
+        <span class="trb-num ${badge(i)}">${i+1}</span>
+        <div class="trb-info">
+          <div class="trb-name">${s.name}</div>
+          <div class="trb-val">${s.manager||'-'}</div>
+        </div>
+        <div class="trb-bar-wrap">
+          <div class="trb-bar-fill" style="width:${barW}%;background:#e74c3c;"></div>
+        </div>
+        <span class="trb-pct neg">${fmtP(v)}</span>
+      </div>`;
+    }).join('');
+  }
+  const withOp=PERF_STORES.filter(s=>s.op_profit && s.op_profit.op26!=null);
+  const worstOp=withOp.slice().sort((a,b)=>a.op_profit.op26-b.op_profit.op26).slice(0,10);
+  bodyOp.innerHTML=renderList(worstOp,s=>s.op_profit.op26);
+  const withLc=PERF_STORES.filter(s=>s.lc_profit && s.lc_profit.lc26!=null);
+  const worstLc=withLc.slice().sort((a,b)=>b.lc_profit.lc26-a.lc_profit.lc26).slice(0,10);
+  bodyLc.innerHTML=renderList(worstLc,s=>s.lc_profit.lc26);
 }
 
 // ===== 숫자 포맷 =====
