@@ -4,6 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>탑텐 영업지원 포털</title>
+<!-- PWA: 홈 화면에 추가해서 앱처럼 쓸 수 있게 하는 설정. manifest.json/sw.js/icon-*.png는
+     이 HTML과 같은 폴더(topten-portal/)에 같이 올려둬야 한다 -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1a1a2e">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TOP10 포털">
+<meta name="mobile-web-app-capable" content="yes">
 <style>
 :root{
   --primary:#1a1a2e; --accent:#e94560; --accent2:#0f3460;
@@ -714,6 +723,14 @@ document.addEventListener('DOMContentLoaded', function(){
     try{buildSummary();}catch(e){}
   }
 });
+
+// PWA: 홈 화면에 설치 가능하게 서비스워커 등록. sw.js가 같은 폴더에 없어도(예: manifest/sw를
+// 아직 안 올린 예전 배포본) 그냥 조용히 실패하고 사이트는 평소대로 동작한다.
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').catch(function(){});
+  });
+}
 
 // ===== 지역 지도 (카카오맵 · 실제 위치 마커) =====
 // 매장 주소를 카카오 지오코딩으로 위경도 변환해 실제 지도에 마커로 표기한다.
