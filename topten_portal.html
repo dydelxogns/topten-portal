@@ -721,7 +721,10 @@ document.addEventListener('DOMContentLoaded', function(){
 // 지도 탭을 클릭한 시점에만 SDK를 불러온다(비활성 상태에서 불필요한 API 호출 방지).
 const KAKAO_APP_KEY = '58eb3b2832d600cc064d9d67a88928fb';
 const GEOCODE_CACHE_KEY = 'topten_geocode_cache_v1';
-const MAP_CLUSTER_MIN_LEVEL = 7; // 이 레벨(포함) 이상이면 클러스터로 묶임 → 매장명 라벨은 이보다 확대했을 때만 보여준다
+const MAP_CLUSTER_MIN_LEVEL = 7; // 이 레벨(포함) 이상이면 클러스터러가 가까운 마커들을 묶는다
+// 라벨은 클러스터링 여부와 무관한 별도 오버레이라 클러스터 기준(7)을 그대로 쓸 필요가 없다.
+// 완전히 확대해야만 겨우 보인다는 피드백을 받아 라벨은 조금 더 멀리서도(=레벨 숫자가 더 커도) 보이게 기준을 따로 둔다.
+const LABEL_MIN_LEVEL = 9; // 이 레벨 미만이면(=이보다 조금만 확대해도) 매장명 라벨을 보여준다
 let kakaoSdkLoading=false, kakaoMapInited=false, kmap=null, kclusterer=null, kMarkers=[];
 const kMarkerImgCache={};
 let kMarkerById={};   // 매장ID → 마커 (지도 검색에서 특정 매장으로 이동할 때 씀)
@@ -909,11 +912,13 @@ function toggleRadiusMode(){
   if(container) container.classList.toggle('map-measuring', distMode||radiusMode);
 }
 
-// 클러스터가 풀려서 매장이 하나씩 보일 만큼 확대했을 때만 매장명 라벨을 켠다.
-// (클러스터로 묶인 상태에서 라벨까지 다 보이면 지도가 글자로 뒤덮여 오히려 안 보임)
+// 완전히 확대하지 않아도 매장명 라벨이 보이도록 LABEL_MIN_LEVEL(클러스터 기준보다 느슨함) 사용.
+// 다만 밀집 지역은 이 레벨에서도 여전히 클러스터로 묶여있을 수 있는데, 라벨은 클러스터와
+// 별개 오버레이라 그 매장 위치에 그대로 뜬다 — 클러스터 원 근처에 이름표가 겹쳐 보일 수
+// 있지만, "완전 확대해야 겨우 보인다"는 문제보다는 낫다는 판단.
 function updateLabelVisibility(){
   if(!kmap) return;
-  const show = kmap.getLevel() < MAP_CLUSTER_MIN_LEVEL;
+  const show = kmap.getLevel() < LABEL_MIN_LEVEL;
   kLabels.forEach(l=>l.setMap(show ? kmap : null));
 }
 
