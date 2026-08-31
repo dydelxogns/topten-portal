@@ -1712,11 +1712,12 @@ function openModal(id){
   const dday=contEnd?Math.round((contEnd-now)/86400000):null;
   const ddayStr=dday!=null?(dday>0?'D-'+dday:(dday===0?'D-Day':'D+'+Math.abs(dday))):'-';
   const ddayColor=dday!=null&&dday<=90?'var(--danger)':'var(--success)';
-  let feeStr='-';
-  if(s.fixed_cost!=null) feeStr=Math.round(s.fixed_cost/1000)+'백만원 (고정)';
-  else if(s.commission!=null) feeStr=(s.commission*100).toFixed(1)+'% (수수료)';
-  const depStr=s.deposit!=null?Math.round(s.deposit/1000)+'백만원':'보증금 無';
-  const brStr=s.br!=null?(s.br/1000).toFixed(1)+'백만원':null;
+  // 조건(고정)/BR/조건(수수료)/보증금 — 기초정보 AC/AD/AE/AF열. 값이 없으면(신규/미확정 등)
+  // "-"나 "無" 대신 0으로 표기해서 네 항목 모두 항상 숫자로 보이게 한다(2026-08-31, 수수료 표기 오류 신고 반영).
+  const condFixedStr=s.fixed_cost!=null?Math.round(s.fixed_cost/1000)+'백만원':'0백만원';
+  const brStr=s.br!=null?(s.br/1000).toFixed(1)+'백만원':'0백만원';
+  const condFeeStr=s.commission!=null?(s.commission*100).toFixed(1)+'%':'0%';
+  const depStr=s.deposit!=null?Math.round(s.deposit/1000)+'백만원':'0백만원';
   function mv(v){ return v!=null&&v!==0?Math.round(v)+'백만':'-'; }
   const areaStr=s.area_py>0?(Math.round(s.area_py)+'py'+(s.area_sales>0?' (영업 '+Math.round(s.area_sales)+'py)':'')):'-';
   const m=s.monthly||{};
@@ -1752,8 +1753,9 @@ function openModal(id){
           <div class="info-item"><div class="i-lbl">전체면적 (영업면적)</div><div class="i-val">${areaStr}</div></div>
           <div class="info-item"><div class="i-lbl">오픈일자</div><div class="i-val" style="color:#1a2436;font-weight:700;">${s.open_date||'-'}</div></div>
           <div class="info-item"><div class="i-lbl">계약 종료일</div><div class="i-val" style="color:${ddayColor};font-weight:700;">${s.contract_end||'-'} <span style="font-size:12px;">(${ddayStr})</span></div></div>
-          <div class="info-item"><div class="i-lbl">수수료</div><div class="i-val">${feeStr}</div></div>
-          ${brStr?`<div class="info-item"><div class="i-lbl">BR</div><div class="i-val">${brStr}</div></div>`:''}
+          <div class="info-item"><div class="i-lbl">조건(고정)</div><div class="i-val">${condFixedStr}</div></div>
+          <div class="info-item"><div class="i-lbl">BR</div><div class="i-val">${brStr}</div></div>
+          <div class="info-item"><div class="i-lbl">조건(수수료)</div><div class="i-val">${condFeeStr}</div></div>
           <div class="info-item"><div class="i-lbl">보증금</div><div class="i-val">${depStr}</div></div>
         </div>
       </div>
