@@ -489,7 +489,10 @@ nav button.active{color:#fff;border-bottom-color:var(--accent);background:rgba(2
 .map-search-item .msi-region{color:var(--muted);font-size:11px;margin-left:6px;}
 .map-legend{display:flex;align-items:center;gap:10px;justify-content:center;margin-bottom:16px;font-size:12px;color:var(--muted);flex-wrap:wrap;}
 .map-legend-bar{width:220px;height:10px;border-radius:5px;background:linear-gradient(90deg,#b71c1c 0%,#b71c1c 25%,#e53935 25%,#e53935 42.5%,#fbc02d 42.5%,#fbc02d 57.5%,#9ccc65 57.5%,#9ccc65 70%,#43a047 70%,#43a047 87.5%,#1b5e20 87.5%,#1b5e20 100%);}
-#kakao-map{width:100%;height:520px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);background:#eef0f4;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+#kakao-map{position:relative;width:100%;height:520px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.1);background:#eef0f4;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+/* 첫 방문(캐시 없음)이라 매장 위치를 새로 조회하는 동안 지도가 텅 비어 보이지 않도록
+   진행 상황을 알려주는 배지. 지도 조작을 막지 않게 pointer-events:none. */
+.map-geocode-progress{position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:50;background:rgba(26,36,54,.88);color:#fff;font-size:12px;font-weight:600;padding:7px 16px;border-radius:20px;box-shadow:0 2px 8px rgba(0,0,0,.2);pointer-events:none;white-space:nowrap;}
 /* PC 화면(701px 이상)에서만 지도를 더 넓고 크게 — .map-wrap의 900px 상한이 모바일에선
    어차피 화면 폭보다 커서 아무 영향이 없으므로, 이 규칙은 모바일 레이아웃을 전혀 건드리지 않는다. */
 @media(min-width:701px){
@@ -1031,25 +1034,56 @@ function placeStoreMarkers(){
 
   function finish(){
     if(cacheDirty) saveGeocodeCache(cache);
+    hideGeocodeProgress();
     renderMarkers(positions, noAddrCount);
   }
 
   if(toGeocode.length===0){ finish(); return; }
 
-  // 순차 처리(요청 간 40ms 간격)로 API 순간 부하를 피한다.
-  function next(i){
-    if(i>=toGeocode.length){ finish(); return; }
-    const store=toGeocode[i];
+  // 캐시가 없는 첫 방문(새 PC/새 브라우저 등)에는 286개 매장을 전부 새로 지오코딩해야 한다.
+  // 예전엔 요청을 하나씩 40ms 간격으로 순차 처리해서 다 끝나는 데 10~수십 초가 걸렸고,
+  // 그 동안 지도에 안내 문구 하나 없이 텅 비어 있어서 "마커가 안 뜬다"는 오해를 샀다
+  // (실제로 몇십 초 기다리면 뜨긴 뜨는데, 그 전에 사용자가 이미 안 되는 줄 알고 떠나버림).
+  // 동시에 여러 건씩 처리(8개 동시)하도록 바꿔서 첫 방문 대기 시간을 몇 초 수준으로 줄이고,
+  // 처리 중임을 알 수 있게 진행 상황 문구도 지도 위에 표시한다.
+  const CONCURRENCY=8;
+  let nextIndex=0, doneCount=0, inFlight=0;
+  showGeocodeProgress(0, toGeocode.length);
+
+  function runNext(){
+    if(nextIndex>=toGeocode.length) return;
+    const store=toGeocode[nextIndex++];
+    inFlight++;
     geocoder.addressSearch(store.address, (result,status)=>{
       if(status===kakao.maps.services.Status.OK && result[0]){
         const lat=parseFloat(result[0].y), lng=parseFloat(result[0].x);
         cache[store.id]={lat,lng,addr:store.address}; cacheDirty=true;
         positions.push({store, lat, lng});
       }
-      setTimeout(()=>next(i+1), 40);
+      inFlight--; doneCount++;
+      showGeocodeProgress(doneCount, toGeocode.length);
+      if(nextIndex<toGeocode.length) runNext();
+      else if(inFlight===0) finish();
     });
   }
-  next(0);
+  for(let k=0;k<Math.min(CONCURRENCY, toGeocode.length);k++) runNext();
+}
+
+function showGeocodeProgress(done, total){
+  const container=document.getElementById('kakao-map');
+  if(!container) return;
+  let el=document.getElementById('map-geocode-progress');
+  if(!el){
+    el=document.createElement('div');
+    el.id='map-geocode-progress';
+    el.className='map-geocode-progress';
+    container.appendChild(el);
+  }
+  el.textContent=`매장 위치 불러오는 중... (${done}/${total})`;
+}
+function hideGeocodeProgress(){
+  const el=document.getElementById('map-geocode-progress');
+  if(el) el.remove();
 }
 
 function renderMarkers(positions, noAddrCount){
