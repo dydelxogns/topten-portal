@@ -2145,13 +2145,20 @@ function selectProfitStore(id){
 // 순판관비(1) = 임차/수수료 + 인건비 + 감가상각비. 즉 "판관비"와 "순판관비(1)"은
 // 그 자체가 소계(부모)이지 leaf 항목이 아니다 — 후보에 넣으면 임차/수수료·인건비·
 // 감가상각비와 같은 변동을 이중으로 세게 된다(예전 버전의 버그). 그래서 실제로
-// 서로 겹치지 않는 leaf 레벨 항목만 후보로 쓴다: 판매액(VAT+, 매출 측 유일한 leaf,
-// 늘수록 영업이익 GOOD) / 매출원가 / 임차·수수료 / 인건비 / 감가상각비 / 순판관비(2)
-// (판관비 중 임차·인건비·감가상각비로 안 잡히는 나머지 잔여 항목, 늘수록 BAD) —
-// 이 6개는 서로 겹치지 않으므로 합산해도 이중계산이 안 생긴다. dir는 이 항목이
-// 늘었을 때 영업이익에 +방향인지 -방향인지 표시용(양수=늘수록 GOOD).
+// 서로 겹치지 않는 leaf "비율(%)" 항목만 후보로 쓴다: 매출원가율 / 임차·수수료율 /
+// 인건비율 / 감가상각비율 / 순판관비(2)율(판관비 중 임차·인건비·감가상각비로 안
+// 잡히는 나머지 잔여 항목) — 이 5개는 서로 겹치지 않으므로 합산해도 이중계산이
+// 안 생긴다. dir는 이 항목의 비율이 늘었을 때 영업이익율에 +방향인지 -방향인지
+// 표시용(양수=늘수록 GOOD).
+//
+// 2026-09-04 네 번째 라운드: "영향 큰 항목" 판단 기준을 영업이익 금액(원)에서
+// 영업이익율(%) 증감 방향으로 바꾸면서, 판매액(VAT+)은 influencer 후보에서 뺐다
+// (자체 %p 짝이 없어 다른 비율 항목과 같은 단위로 비교할 수 없고, 매출 감소가
+// 고정비성 항목의 비율을 밀어올리는 효과로 이미 임차/수수료율·인건비율 등에
+// 간접적으로 반영되기 때문 — 아래 buildPLCompareTable 주석 참고). 판매액(VAT+)의
+// emphasize:true(굵은 검정 스타일)는 배지 로직과 무관하게 그대로 유지한다.
 const PF_PL_ROWS=[
-  {label:'판매액(VAT+)', amt:'sales_vat_plus', pct:null, influencer:true, dir:1, emphasize:true},
+  {label:'판매액(VAT+)', amt:'sales_vat_plus', pct:null, influencer:false, emphasize:true},
   {label:'판매액(VAT-)', amt:'sales_vat_minus', pct:null, influencer:false},
   {label:'매출원가', amt:'cogs', pct:'cogs_pct', influencer:true, dir:-1},
   {label:'판관비', amt:'sga', pct:'sga_pct', influencer:false},
@@ -2302,24 +2309,34 @@ function buildPLCompareTable(pf, curKey, cmpKey, title, curLbl, cmpLbl){
   function fmtWon(v){ return v!=null? Math.round(v/1000000).toLocaleString()+'백만원':'-'; }
   function fmtPct(v){ return v!=null? (v*100).toFixed(1)+'%':'-'; }
 
-  // "영향 큰 항목"은 단순히 금액 증감이 큰 순이 아니라, 영업이익이 실제로 움직인
-  // 방향과 같은 방향으로 기여한 항목만 후보로 삼는다(사용자 요청) — 영업이익이
+  // "영향 큰 항목"은 단순히 증감이 큰 순이 아니라, 영업이익율(%)이 실제로 움직인
+  // 방향과 같은 방향으로 기여한 항목만 후보로 삼는다(사용자 요청) — 영업이익율이
   // 낮아졌으면 낮아지게 만든 원인들 중에서, 높아졌으면 높아지게 만든 원인들 중에서
-  // 영향(signed impact = 증감액 × dir, dir는 이 항목이 늘 때 영업이익에 +인지 -인지)이
-  // 큰 순으로 상위 3개. 예를 들어 영업이익이 하락했는데 매출원가가 개선(감소)됐다면
-  // 그건 하락의 원인이 아니므로 아무리 금액 변동이 커도 후보에서 빠진다.
+  // 영향(signed impact = %p 증감 × dir, dir는 이 비율이 늘 때 영업이익율에 +인지 -인지)이
+  // 큰 순으로 상위 3개. 예를 들어 영업이익율이 하락했는데 매출원가율이 개선(하락)됐다면
+  // 그건 하락의 원인이 아니므로 아무리 %p 변동이 커도 후보에서 빠진다.
+  //
+  // 2026-09-04 네 번째 라운드(중요): 기준을 "영업이익 금액(원)"에서 "영업이익율(%)"로
+  // 바꿨다 — 표 전체가 "%율이 금액보다 훨씬 중요한 지표"라는 원칙으로 만들어져 있는데
+  // (판매액이 급감한 매장 등에서) 영업이익 금액과 영업이익율이 서로 반대 방향으로
+  // 움직이는 경우가 실제로 있었다(예: 명동2점 — 매출이 15% 줄면서 원가·인건비율은
+  // 개선됐는데도 임차/수수료 같은 고정비성 비율이 더 크게 올라 적자 금액은 줄었지만
+  // 적자율은 오히려 악화). 이럴 때 "금액" 기준으로 배지를 뽑으면 %로 표를 읽는
+  // 사용자 입장에서 정반대 원인이 강조돼 보이는 문제가 있어, %기준으로 통일했다.
+  // 판매액(VAT+)은 %p 짝이 없어 이 비교에서 빠진다(PF_PL_ROWS 주석 참고) — 매출
+  // 감소의 영향은 그로 인해 오른 임차/수수료율·인건비율 등에 이미 반영되어 있다.
   var influencers=[];
-  var opDiff = (cur && cmp && cur.op_profit!=null && cmp.op_profit!=null) ? (cur.op_profit - cmp.op_profit) : null;
+  var opDiff = (cur && cmp && cur.op_profit_pct!=null && cmp.op_profit_pct!=null) ? (cur.op_profit_pct - cmp.op_profit_pct) : null;
   var opSign = opDiff==null ? 0 : (opDiff>0 ? 1 : (opDiff<0 ? -1 : 0));
   if(cur && cmp && opSign!==0){
-    PF_PL_ROWS.filter(function(r){return r.influencer;}).forEach(function(r){
-      var a=cur[r.amt], b=cmp[r.amt];
+    PF_PL_ROWS.filter(function(r){return r.influencer && r.pct;}).forEach(function(r){
+      var a=cur[r.pct], b=cmp[r.pct];
       if(a==null || b==null) return;
-      var diff = a-b;
-      var impact = diff * (r.dir||0);   // 이 항목의 변화가 영업이익을 얼마나 밀었는지(부호 있음)
+      var diff = a-b;   // %p 단위(비율 원시값, 0.xx 스케일 — 순위·부호 비교에만 쓰이므로 스케일 자체는 무관)
+      var impact = diff * (r.dir||0);   // 이 항목의 비율 변화가 영업이익율을 얼마나 밀었는지(부호 있음)
       if(impact===0) return;
       var impactSign = impact>0 ? 1 : -1;
-      if(impactSign !== opSign) return;  // 영업이익이 움직인 방향과 반대로 기여했으면 "원인" 후보 아님
+      if(impactSign !== opSign) return;  // 영업이익율이 움직인 방향과 반대로 기여했으면 "원인" 후보 아님
       influencers.push({key:r.amt, diff:diff, impact:impact});
     });
     influencers.sort(function(x,y){ return Math.abs(y.impact)-Math.abs(x.impact); });
