@@ -200,8 +200,21 @@ nav button.active{color:#fff;border-bottom-color:var(--accent);background:rgba(2
 .pl-up{color:#e74c3c;font-weight:700;}
 .pl-down{color:#2980b9;font-weight:700;}
 .pl-note{font-size:12.5px;color:#7a6215;font-weight:600;margin:-2px 0 14px;background:#fef9e7;border:1px solid #f5e6a8;border-radius:6px;padding:7px 12px;display:inline-block;}
-/* 영업이익은 가장 중요한 결과 지표라 빨간 테두리 박스로 별도 강조(%행+금액행 두 줄을 감싼다) */
-.pl-table tbody tr.pl-op-box td{border-left:2.5px solid #e74c3c!important;border-right:2.5px solid #e74c3c!important;background:#fff3f2;}
+/* 판매액(VAT+)은 %p 단위가 없어 "영향 큼" top3 순위 후보에는 안 들어가지만, 다른 비율
+   항목이 움직인 배경(매출 급감/급증)을 놓치지 않도록 아래에 참고 문구로 별도 표시한다
+   (2026-09-04 다섯 번째 라운드, .pl-note와 톤을 다르게 해서 "순위권 원인"과 "배경 참고"를
+   시각적으로 구분). */
+/* 영업이익은 가장 중요한 결과 지표라 빨간 테두리 박스로 별도 강조(%행+금액행 두 줄을 감싼다).
+   2026-09-04: 예전엔 이 행의 "모든" td에 좌/우 빨간 테두리를 줬는데, border-collapse 테이블에서
+   인접한 셀끼리도 전부 빨간 경계선을 갖게 되어 (1) 칸과 칸 사이에도 원치 않는 빨간 세로선이
+   생기고 (2) %행(증감액/증감율이 colspan=2로 합쳐짐)과 금액행(증감액/증감율이 별도 두 칸)의
+   내부 칸 너비가 서로 달라서 두 행 사이 좌우 테두리가 살짝 어긋나 "끊어져 보이는" 문제가 있었다.
+   행의 진짜 왼쪽 끝(label 칸, :first-child)과 진짜 오른쪽 끝(마지막 칸, :last-child)에만 테두리를
+   주면 두 행 모두 항상 표 전체 너비를 채우므로 이 정렬 문제가 없어지고, 칸 사이 불필요한
+   세로선도 사라진다. */
+.pl-table tbody tr.pl-op-box td{background:#fff3f2;}
+.pl-table tbody tr.pl-op-box td:first-child{border-left:2.5px solid #e74c3c!important;}
+.pl-table tbody tr.pl-op-box td:last-child{border-right:2.5px solid #e74c3c!important;}
 .pl-table tbody tr.pl-op-box.pl-op-first td{border-top:2.5px solid #e74c3c!important;}
 .pl-table tbody tr.pl-op-box.pl-op-last td{border-bottom:2.5px solid #e74c3c!important;}
 .pl-table tbody tr.pl-op-box td.pl-lbl{color:#c0392b!important;}
@@ -2142,23 +2155,44 @@ function selectProfitStore(id){
 // influencer:true인 항목만 "영업이익에 영향을 크게 준 항목" 자동 강조 후보로 쓴다.
 //
 // 손익 구조(사용자가 제공한 산출구조도 기준): 판관비 = 순판관비(1) + 순판관비(2),
-// 순판관비(1) = 임차/수수료 + 인건비 + 감가상각비. 즉 "판관비"와 "순판관비(1)"은
-// 그 자체가 소계(부모)이지 leaf 항목이 아니다 — 후보에 넣으면 임차/수수료·인건비·
-// 감가상각비와 같은 변동을 이중으로 세게 된다(예전 버전의 버그). 그래서 실제로
-// 서로 겹치지 않는 leaf "비율(%)" 항목만 후보로 쓴다: 매출원가율 / 임차·수수료율 /
-// 인건비율 / 감가상각비율 / 순판관비(2)율(판관비 중 임차·인건비·감가상각비로 안
-// 잡히는 나머지 잔여 항목) — 이 5개는 서로 겹치지 않으므로 합산해도 이중계산이
-// 안 생긴다. dir는 이 항목의 비율이 늘었을 때 영업이익율에 +방향인지 -방향인지
-// 표시용(양수=늘수록 GOOD).
+// 순판관비(1) = 임차/수수료 + 인건비 + 감가상각비 + 기타 판관비. 즉 "판관비"와
+// "순판관비(1)"은 그 자체가 소계(부모)이지 leaf 항목이 아니다 — 후보에 넣으면
+// 임차/수수료·인건비·감가상각비와 같은 변동을 이중으로 세게 된다(예전 버전의 버그).
+// 그래서 실제로 서로 겹치지 않는 leaf "비율(%)" 항목 6개만 후보로 쓴다: 매출원가율 /
+// 임차·수수료율 / 인건비율 / 감가상각비율 / 기타 판관비율 / 순판관비(2)율(판관비 중
+// 순판관비(1)·순판관비(2)로 안 잡히는 나머지 잔여 항목). dir는 이 항목의 비율이
+// 늘었을 때 영업이익율에 +방향인지 -방향인지 표시용(양수=늘수록 GOOD).
 //
 // 2026-09-04 네 번째 라운드: "영향 큰 항목" 판단 기준을 영업이익 금액(원)에서
 // 영업이익율(%) 증감 방향으로 바꾸면서, 판매액(VAT+)은 influencer 후보에서 뺐다
-// (자체 %p 짝이 없어 다른 비율 항목과 같은 단위로 비교할 수 없고, 매출 감소가
-// 고정비성 항목의 비율을 밀어올리는 효과로 이미 임차/수수료율·인건비율 등에
-// 간접적으로 반영되기 때문 — 아래 buildPLCompareTable 주석 참고). 판매액(VAT+)의
-// emphasize:true(굵은 검정 스타일)는 배지 로직과 무관하게 그대로 유지한다.
+// (자체 %p 짝이 없어 다른 비율 항목과 같은 단위로 비교할 수 없기 때문 — 매출액이
+// 아니라 매출액(VAT-) 대비 원가/비용 비율들의 조합만으로 영업이익율이 결정되므로).
+// 판매액(VAT+)의 emphasize:true(굵은 검정 스타일)는 배지 로직과 무관하게 그대로 유지.
+//
+// 2026-09-04 여섯 번째 라운드(중요, 사용자가 정확한 손익 구조를 직접 정정해줌):
+// 영업이익금액 = 매출액(VAT-) - 매출원가금액 - 판관비금액, 영업이익율 = 영업이익금액
+// ÷ 매출액(VAT-) — 이게 정확한 구조다(그 이전까지 "100% - 매출원가율 - 임차수수료율
+// - 인건비율 - 감가상각비율 - 순판관비(2)율"이라고 설명한 건 부정확했다: 손익 원본
+// 엑셀을 직접 열어 확인해보니 "순판관비(1)" 컬럼 자체가 임차/수수료+인건비+감가상각비
+// 3개의 합보다 항상 더 크다 — 매장마다 다르지만 대략 매출액(VAT-) 대비 4%p 안팎의
+// 잔여 비용이 있는데, 원본 파일에 이 잔여분을 쪼갠 별도 컬럼이 없어서 지금까지는
+// 추출하지 못하고 있었다(버그가 아니라 원본 파일의 한계). 그래서 순판관비(1) 안의
+// 이 잔여분을 `other_sga1`(= net_sga1 - rent_fee - labor - dep, buildPLCompareTable
+// 맨 앞에서 cur/cmp에 동적으로 계산해 붙임)로 명시적인 leaf 항목화해서, "영향 큰
+// 항목" top3 후보 5개→6개로 확장했다. 이제 leaf 6개(매출원가/임차수수료/인건비/
+// 감가상각비/기타 판관비/순판관비(2))를 다 더하면 판관비 전체와 정확히 일치하므로,
+// 영업이익율 변동을 설명 못 하고 빠지는 항목이 없다.
+// 2026-09-04 일곱 번째 라운드(사용자 재요청): "판매액(VAT+)이 기준이 되어 영업이익액이
+// 결정되는데 왜 영향 후보에서 빠지냐"는 지적을 받아, 판매액(VAT+)도 influencer 후보로
+// 다시 포함시켰다. 다른 leaf 항목은 %p(비율 원시값 diff)로 순위를 매기는데 판매액(VAT+)은
+// 그 짝(%p 필드)이 없으므로, 대신 판매액 자체의 "상대 증감율(원시 fraction, 예: -15%→-0.15)"을
+// 같은 척도로 놓고 dir:1(증가=GOOD)을 곱해 impact를 구한다(useRelChange:true 플래그로 표시,
+// buildPLCompareTable의 영향 계산 루프가 이 플래그를 보고 분기한다) — 완전히 동일한 단위는
+// 아니지만 둘 다 대체로 0~0.3 범위의 fraction이라 순위 비교에 쓸 만큼 크기가 맞다. 이제
+// 후보는 leaf 6개+판매액(VAT+) 총 7개다. 별도 "매출 참고" 문구는 top3 배지가 이제 판매액을
+// 직접 반영하므로 제거했다(사용자 요청).
 const PF_PL_ROWS=[
-  {label:'판매액(VAT+)', amt:'sales_vat_plus', pct:null, influencer:false, emphasize:true},
+  {label:'판매액(VAT+)', amt:'sales_vat_plus', pct:null, influencer:true, dir:1, useRelChange:true, emphasize:true},
   {label:'판매액(VAT-)', amt:'sales_vat_minus', pct:null, influencer:false},
   {label:'매출원가', amt:'cogs', pct:'cogs_pct', influencer:true, dir:-1},
   {label:'판관비', amt:'sga', pct:'sga_pct', influencer:false},
@@ -2166,6 +2200,7 @@ const PF_PL_ROWS=[
   {label:'임차/수수료', amt:'rent_fee', pct:'rent_fee_pct', influencer:true, dir:-1},
   {label:'인건비', amt:'labor', pct:'labor_pct', influencer:true, dir:-1},
   {label:'감가상각비', amt:'dep', pct:'dep_pct', influencer:true, dir:-1},
+  {label:'기타 판관비', amt:'other_sga1', pct:'other_sga1_pct', influencer:true, dir:-1},
   {label:'순판관비(2)', amt:'net_sga2', pct:'net_sga2_pct', influencer:true, dir:-1},
   {label:'영업이익', amt:'op_profit', pct:'op_profit_pct', influencer:false, result:true},
   {label:'점이익', amt:'store_profit', pct:'store_profit_pct', influencer:false, result:true},
@@ -2309,6 +2344,21 @@ function buildPLCompareTable(pf, curKey, cmpKey, title, curLbl, cmpLbl){
   function fmtWon(v){ return v!=null? Math.round(v/1000000).toLocaleString()+'백만원':'-'; }
   function fmtPct(v){ return v!=null? (v*100).toFixed(1)+'%':'-'; }
 
+  // "기타 판관비" = 순판관비(1) 중 임차/수수료·인건비·감가상각비로 안 잡히는 나머지
+  // (2026-09-04 여섯 번째 라운드, 사용자가 손익 구조를 직접 정정해줘서 발견 — 원본
+  // 손익 엑셀의 "순판관비(1)" 컬럼 자체가 이 3개 항목의 합보다 항상 크다). 원본
+  // 파일엔 이 잔여분을 쪼갠 별도 컬럼이 없어서 여기서 직접 계산해 cur/cmp에 붙인다 —
+  // PF_PL_ROWS의 other_sga1/other_sga1_pct가 이 계산된 값을 그대로 읽어간다.
+  [cur, cmp].forEach(function(o){
+    if(!o) return;
+    if(o.other_sga1==null && o.net_sga1!=null && o.rent_fee!=null && o.labor!=null && o.dep!=null){
+      o.other_sga1 = o.net_sga1 - o.rent_fee - o.labor - o.dep;
+    }
+    if(o.other_sga1_pct==null && o.net_sga1_pct!=null && o.rent_fee_pct!=null && o.labor_pct!=null && o.dep_pct!=null){
+      o.other_sga1_pct = o.net_sga1_pct - o.rent_fee_pct - o.labor_pct - o.dep_pct;
+    }
+  });
+
   // "영향 큰 항목"은 단순히 증감이 큰 순이 아니라, 영업이익율(%)이 실제로 움직인
   // 방향과 같은 방향으로 기여한 항목만 후보로 삼는다(사용자 요청) — 영업이익율이
   // 낮아졌으면 낮아지게 만든 원인들 중에서, 높아졌으면 높아지게 만든 원인들 중에서
@@ -2323,17 +2373,34 @@ function buildPLCompareTable(pf, curKey, cmpKey, title, curLbl, cmpLbl){
   // 개선됐는데도 임차/수수료 같은 고정비성 비율이 더 크게 올라 적자 금액은 줄었지만
   // 적자율은 오히려 악화). 이럴 때 "금액" 기준으로 배지를 뽑으면 %로 표를 읽는
   // 사용자 입장에서 정반대 원인이 강조돼 보이는 문제가 있어, %기준으로 통일했다.
-  // 판매액(VAT+)은 %p 짝이 없어 이 비교에서 빠진다(PF_PL_ROWS 주석 참고) — 매출
-  // 감소의 영향은 그로 인해 오른 임차/수수료율·인건비율 등에 이미 반영되어 있다.
+  // 판매액(VAT+)은 %p 짝이 없어 다른 비율 항목과 같은 척도로 순위를 매길 수 없어서
+  // top3 후보에서는 뺀다(PF_PL_ROWS 주석 참고) — 대신 아래에서 매출 자체의 증감을
+  // 항상 별도 참고 문구로 보여준다(2026-09-04 다섯 번째 라운드, 명동2점 피드백 반영).
+  // 정확한 구조는 영업이익금액 = 매출액(VAT-) - 매출원가금액 - 판관비금액, 영업이익율
+  // = 영업이익금액 ÷ 매출액(VAT-)이고(2026-09-04 여섯 번째 라운드, 사용자가 정정),
+  // 판관비금액은 임차수수료·인건비·감가상각비·기타 판관비(other_sga1, 위에서 계산)·
+  // 순판관비(2) 5개로 완전히 분해된다 — 그래서 top3 후보는 이제 매출원가/임차수수료/
+  // 인건비/감가상각비/기타 판관비/순판관비(2) 총 6개다(PF_PL_ROWS 주석 참고).
   var influencers=[];
   var opDiff = (cur && cmp && cur.op_profit_pct!=null && cmp.op_profit_pct!=null) ? (cur.op_profit_pct - cmp.op_profit_pct) : null;
   var opSign = opDiff==null ? 0 : (opDiff>0 ? 1 : (opDiff<0 ? -1 : 0));
   if(cur && cmp && opSign!==0){
-    PF_PL_ROWS.filter(function(r){return r.influencer && r.pct;}).forEach(function(r){
-      var a=cur[r.pct], b=cmp[r.pct];
-      if(a==null || b==null) return;
-      var diff = a-b;   // %p 단위(비율 원시값, 0.xx 스케일 — 순위·부호 비교에만 쓰이므로 스케일 자체는 무관)
-      var impact = diff * (r.dir||0);   // 이 항목의 비율 변화가 영업이익율을 얼마나 밀었는지(부호 있음)
+    PF_PL_ROWS.filter(function(r){return r.influencer;}).forEach(function(r){
+      var diff;
+      if(r.pct){
+        var a=cur[r.pct], b=cmp[r.pct];
+        if(a==null || b==null) return;
+        diff = a-b;   // %p 단위(비율 원시값, 0.xx 스케일 — 순위·부호 비교에만 쓰이므로 스케일 자체는 무관)
+      } else if(r.useRelChange){
+        // 판매액(VAT+)처럼 %p 짝이 없는 항목 — 상대 증감율을 원시 fraction(예: -15%→-0.15)으로
+        // 써서 다른 %p 항목들과 같은 크기 스케일로 비교한다(2026-09-04 일곱 번째 라운드).
+        var a=cur[r.amt], b=cmp[r.amt];
+        if(a==null || b==null || b===0) return;
+        diff = (a-b)/Math.abs(b);
+      } else {
+        return;
+      }
+      var impact = diff * (r.dir||0);   // 이 항목의 변화가 영업이익율을 얼마나 밀었는지(부호 있음)
       if(impact===0) return;
       var impactSign = impact>0 ? 1 : -1;
       if(impactSign !== opSign) return;  // 영업이익율이 움직인 방향과 반대로 기여했으면 "원인" 후보 아님
@@ -2389,6 +2456,9 @@ function buildPLCompareTable(pf, curKey, cmpKey, title, curLbl, cmpLbl){
     ? '🟨 음영 = 영업이익 변동 방향에 맞춰 가장 크게 기여한 상위 3개 항목 (이번 비교 구간은 영업이익 변동이 없거나 데이터가 부족해 강조 항목 없음) · 파란/주황 열 = 지금 기준 시점과 증감율'
     : '🟨 음영 = 영업이익이 '+opDirLbl+'한 원인 중 기여도가 가장 큰 상위 3개 항목 · 파란/주황 열 = 지금 기준 시점과 증감율';
 
+  // 2026-09-04 일곱 번째 라운드: 판매액(VAT+)이 이제 위 top3 후보에 직접 포함되므로
+  // (더 이상 %p 짝이 없다고 후보에서 빼지 않음), 별도의 "매출 참고" 안내 문구는
+  // 제거했다(사용자 요청 — top3 배지가 이미 판매액의 영향을 보여주므로 중복).
   return '<div class="pf-sec-title">'+title+'</div>'
     + '<div class="pl-note">'+noteTxt+'</div>'
     + '<div class="pl-compare-wrap"><div class="ch-table-wrap"><table class="pl-table"><thead><tr>'
