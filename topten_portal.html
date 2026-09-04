@@ -1340,6 +1340,21 @@ function showPage(name,btn){
   document.getElementById('page-'+name).classList.add('active');
   btn.classList.add('active');
   if(name==='map'){ try{initKakaoMapIfNeeded();}catch(e){console.error('initKakaoMap:',e); showMapError('지도 초기화 중 오류가 발생했습니다.');} }
+  if(name==='profit'){ try{initProfitDefaultIfNeeded();}catch(e){console.error('initProfitDefault:',e);} }
+}
+
+// 영업이익 탭 기본 매장 고정 표시 — 탭에 처음 들어갔을 때 아무것도 안 보이면
+// 허전하니, 명동2점(MBA016)을 기본으로 미리 띄워둔다. 사용자가 검색해서 다른
+// 매장을 선택하면 그 순간부터는 검색 결과가 우선하고, 이 기본 로딩은 탭 진입
+// "최초 1회"만 동작한다(이미 뭔가 선택된 뒤엔 다시 명동2점으로 안 돌아감).
+let _profitDefaultLoaded=false;
+const PROFIT_DEFAULT_STORE_ID='MBA016';
+function initProfitDefaultIfNeeded(){
+  if(_profitDefaultLoaded) return;
+  _profitDefaultLoaded=true;
+  const s=STORES.find(x=>x.id===PROFIT_DEFAULT_STORE_ID);
+  if(!s) return; // 기본 매장이 이번 실적현황에 없으면(폐점 등) 조용히 안내 문구 유지
+  selectProfitStore(PROFIT_DEFAULT_STORE_ID); // 검색 입력창 채우기 + 렌더링을 한 번에(검색과 동일 경로)
 }
 
 // ===== 앱 초기화 =====
@@ -2474,7 +2489,7 @@ function renderProfitStore(id){
   var meta = (typeof PROFIT!=='undefined' && PROFIT.meta) ? PROFIT.meta : {};
   if(upd){
     upd.textContent = meta.current_month
-      ? ('📌 손익 데이터 최신 반영: '+meta.current_year+'년 '+meta.current_month+'월 누적 기준 (파일 '+meta.generated_files+'개 · '+meta.generated_at+' 생성)')
+      ? ('📌 손익 데이터 최신 반영: '+meta.current_year+'년 '+meta.current_month+'월 누적 기준')
       : '';
   }
   if(!s || !pf){
