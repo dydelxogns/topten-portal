@@ -122,6 +122,17 @@ nav button.active{color:#fff;border-bottom-color:var(--accent);background:rgba(2
 .op-box{background:var(--bg);padding:12px;text-align:center;}
 .op-lbl{font-size:11px;color:var(--muted);margin-bottom:6px;font-weight:600;}
 .op-val{font-size:20px;font-weight:800;}
+.info-dash{display:grid;grid-template-columns:repeat(6,1fr);gap:14px 12px;padding:14px 16px 16px;}
+.info-dash-break{grid-column:1/-1;border-top:1px solid var(--border);margin-top:2px;padding-top:12px;}
+.info-dash-break:first-child{border-top:none;margin-top:0;padding-top:0;}
+.kpi-grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:12px 16px 16px;}
+.reno-env-box{padding:2px 16px 12px;}
+.reno-env-row{display:flex;align-items:center;justify-content:space-between;padding:9px 2px;font-size:13px;}
+.reno-env-row+.reno-env-row{border-top:1px solid var(--border);}
+.reno-env-row .rer-lbl{font-weight:700;font-size:12.5px;padding:5px 12px;border-radius:6px;}
+.reno-env-row .rer-lbl.env{background:#dbeafd;color:#0d4ea6;}
+.reno-env-row .rer-lbl.reno{background:#ece0fa;color:#6425a8;}
+.reno-env-row .rer-val{font-weight:700;color:#1a2436;}
 .modal-chart-section{background:#fff;border-radius:10px;border:1px solid var(--border);padding:14px;margin-bottom:12px;}
 .chart-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
 .chart-title{font-size:14px;font-weight:800;color:var(--primary);}
@@ -313,6 +324,8 @@ nav button.active{color:#fff;border-bottom-color:var(--accent);background:rgba(2
 @media(max-width:600px){
   .ranking-wrap{grid-template-columns:1fr;}
   .info-grid{grid-template-columns:1fr;}
+  .kpi-grid-4{grid-template-columns:1fr 1fr;}
+  .info-dash{grid-template-columns:repeat(2,1fr);}
   .fg-row{grid-template-columns:1fr;}
   .sc-kpi{grid-template-columns:1fr 1fr;}
 }
@@ -2042,35 +2055,36 @@ function openModal(id){
       <h2 style="margin:0;font-size:18px;">🏪 ${s.name||s.id}</h2>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
-    <div class="modal-body-grid">
-      <div class="modal-left">
-        <div class="modal-sec-title">매장 기본정보</div>
-        <div class="info-grid">
-          <div class="info-item"><div class="i-lbl">매장 ID</div><div class="i-val">${s.id}</div></div>
-          <div class="info-item"><div class="i-lbl">담당자</div><div class="i-val">${s.manager||'-'}</div></div>
-          <div class="info-item"><div class="i-lbl">점장</div><div class="i-val">${s.store_manager||'-'}</div></div>
-          <div class="info-item"><div class="i-lbl">점장 전화번호</div><div class="i-val">${s.store_phone||'-'}</div></div>
-          <div class="info-item"><div class="i-lbl">지역(상세)</div><div class="i-val">${s.region_detail||s.region||'-'}</div></div>
-          <div class="info-item"><div class="i-lbl">채널 유형</div><div class="i-val">${s.cat1||'-'}${s.store_type?'('+s.store_type+')':''}</div></div>
-          <div class="info-item"><div class="i-lbl">층</div><div class="i-val">${s.floor||'-'}</div></div>
-          <div class="info-item"><div class="i-lbl">전체면적 (영업면적)</div><div class="i-val">${areaStr}</div></div>
-          <div class="info-item"><div class="i-lbl">오픈일자</div><div class="i-val" style="color:#1a2436;font-weight:700;">${s.open_date||'-'}</div></div>
-          <div class="info-item"><div class="i-lbl">계약 종료일</div><div class="i-val" style="color:${ddayColor};font-weight:700;">${s.contract_end||'-'} <span style="font-size:12px;">(${ddayStr})</span></div></div>
-          <div class="info-item"><div class="i-lbl">조건(고정)</div><div class="i-val">${condFixedStr}</div></div>
-          <div class="info-item"><div class="i-lbl">BR</div><div class="i-val">${brStr}</div></div>
-          <div class="info-item"><div class="i-lbl">조건(수수료)</div><div class="i-val">${condFeeStr}</div></div>
-          <div class="info-item"><div class="i-lbl">보증금</div><div class="i-val">${depStr}</div></div>
-          ${KIDS_RATIO[s.id]!=null?`<div class="info-item"><div class="i-lbl">키즈 비중</div><div class="i-val">${(KIDS_RATIO[s.id]*100).toFixed(1)}%</div></div>`:''}
-        </div>
+    <div class="modal-op-section">
+      <div class="modal-sec-title" style="padding:8px 16px 4px;">매장 기본정보</div>
+      <div class="info-dash">
+        <div class="info-dash-break"></div>
+        <div class="info-item"><div class="i-lbl">매장 ID</div><div class="i-val">${s.id}</div></div>
+        <div class="info-item"><div class="i-lbl">담당자</div><div class="i-val">${s.manager||'-'}</div></div>
+        <div class="info-item"><div class="i-lbl">점장</div><div class="i-val">${s.store_manager||'-'}</div></div>
+        <div class="info-item"><div class="i-lbl">점장 전화번호</div><div class="i-val">${s.store_phone||'-'}</div></div>
+        <div class="info-dash-break"></div>
+        <div class="info-item"><div class="i-lbl">지역(상세)</div><div class="i-val">${s.region_detail||s.region||'-'}</div></div>
+        <div class="info-item"><div class="i-lbl">채널 유형</div><div class="i-val">${s.cat1||'-'}${s.store_type?'('+s.store_type+')':''}</div></div>
+        <div class="info-item"><div class="i-lbl">층</div><div class="i-val">${s.floor||'-'}</div></div>
+        <div class="info-item"><div class="i-lbl">전체면적 (영업면적)</div><div class="i-val">${areaStr}</div></div>
+        ${KIDS_RATIO[s.id]!=null?`<div class="info-item"><div class="i-lbl">키즈 비중</div><div class="i-val">${(KIDS_RATIO[s.id]*100).toFixed(1)}%</div></div>`:''}
+        <div class="info-dash-break"></div>
+        <div class="info-item"><div class="i-lbl">오픈일자</div><div class="i-val" style="color:#1a2436;font-weight:700;">${s.open_date||'-'}</div></div>
+        <div class="info-item"><div class="i-lbl">계약 종료일</div><div class="i-val" style="color:${ddayColor};font-weight:700;">${s.contract_end||'-'} <span style="font-size:12px;">(${ddayStr})</span></div></div>
+        <div class="info-item"><div class="i-lbl">조건(고정)</div><div class="i-val">${condFixedStr}</div></div>
+        <div class="info-item"><div class="i-lbl">조건(수수료)</div><div class="i-val">${condFeeStr}</div></div>
+        <div class="info-item"><div class="i-lbl">BR</div><div class="i-val">${brStr}</div></div>
+        <div class="info-item"><div class="i-lbl">보증금</div><div class="i-val">${depStr}</div></div>
       </div>
-      <div class="modal-right">
-        <div class="modal-sec-title">매출 실적</div>
-        <div class="kpi-grid-2x2">
-          <div class="kpi-box2"><div class="kb2-lbl">🟠 주간</div><div class="kb2-val weekly-c">${mv(s.w_actual)}</div><div class="kb2-pct ${colorClass(s.w_growth)}">${fmtPct(s.w_growth)}</div></div>
-          <div class="kpi-box2"><div class="kb2-lbl">🟢 월간</div><div class="kb2-val monthly-c">${mv(s.m_actual)}</div><div class="kb2-pct ${colorClass(s.m_growth)}">${fmtPct(s.m_growth)}</div></div>
-          <div class="kpi-box2"><div class="kb2-lbl">🟣 연간</div><div class="kb2-val annual-c">${mv(s.y_actual)}</div><div class="kb2-pct ${colorClass(s.y_growth)}">${fmtPct(s.y_growth)}</div></div>
-          <div class="kpi-box2"><div class="kb2-lbl">🔵 월평균</div><div class="kb2-val" style="color:var(--accent2);">${mv(s.monthly_avg)}</div><div class="kb2-pct ${colorClass(s.monthly_avg_growth)}">${fmtPct(s.monthly_avg_growth)}</div></div>
-        </div>
+    </div>
+    <div class="modal-op-section">
+      <div class="modal-sec-title" style="padding:8px 16px 4px;">매출 실적</div>
+      <div class="kpi-grid-4">
+        <div class="kpi-box2"><div class="kb2-lbl">🟠 주간</div><div class="kb2-val weekly-c">${mv(s.w_actual)}</div><div class="kb2-pct ${colorClass(s.w_growth)}">${fmtPct(s.w_growth)}</div></div>
+        <div class="kpi-box2"><div class="kb2-lbl">🟢 월간</div><div class="kb2-val monthly-c">${mv(s.m_actual)}</div><div class="kb2-pct ${colorClass(s.m_growth)}">${fmtPct(s.m_growth)}</div></div>
+        <div class="kpi-box2"><div class="kb2-lbl">🟣 연간</div><div class="kb2-val annual-c">${mv(s.y_actual)}</div><div class="kb2-pct ${colorClass(s.y_growth)}">${fmtPct(s.y_growth)}</div></div>
+        <div class="kpi-box2"><div class="kb2-lbl">🔵 월평균</div><div class="kb2-val" style="color:var(--accent2);">${mv(s.monthly_avg)}</div><div class="kb2-pct ${colorClass(s.monthly_avg_growth)}">${fmtPct(s.monthly_avg_growth)}</div></div>
       </div>
     </div>
     <div class="modal-op-section">
@@ -2089,6 +2103,13 @@ function openModal(id){
         <div class="op-box"><div class="op-lbl">25년 (마감)</div><div class="op-val" style="${opColor(lc.lc25)}">${fmtOp(lc.lc25)}</div></div>
         <div class="op-box"><div class="op-lbl">24년 (마감)</div><div class="op-val" style="${opColor(lc.lc24)}">${fmtOp(lc.lc24)}</div></div>
         <div class="op-box"><div class="op-lbl">23년 (마감)</div><div class="op-val" style="${opColor(lc.lc23)}">${fmtOp(lc.lc23)}</div></div>
+      </div>
+    </div>
+    <div class="modal-op-section">
+      <div class="modal-sec-title" style="padding:8px 16px 4px;">환경개선 · 리뉴얼 시행일자</div>
+      <div class="reno-env-box">
+        <div class="reno-env-row"><span class="rer-lbl env">🛠 환경개선</span><span class="rer-val">${s.env_date||'-'}</span></div>
+        <div class="reno-env-row"><span class="rer-lbl reno">🏗 리뉴얼</span><span class="rer-val">${s.reno_date||'-'}</span></div>
       </div>
     </div>
     <div class="modal-chart-section">
