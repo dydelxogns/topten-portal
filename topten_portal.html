@@ -653,7 +653,6 @@ nav button.active{color:#fff;border-bottom-color:var(--accent);background:rgba(2
 .td-hd .ph-tab.active{background:#fff;color:#0f3460;}
 #td-summary-table thead th,#td-channel-table thead th,#td-store-table thead th{background:#1a2436;color:#fff;font-size:12px;border-bottom:none;}
 #td-summary-body tr:nth-child(even) td,#td-channel-body tr:nth-child(even) td,#td-store-list tr:nth-child(even) td{background:#f5f7fb;}
-#td-summary-body tr.td-hit td,#td-channel-body tr.td-hit td,#td-store-list tr.td-hit td{background:#e6f7ec;}
 #td-summary-body tr.td-sel td{background:#dde8ff !important;font-weight:800;}
 #td-summary-body tr.td-sel td:first-child{box-shadow:inset 4px 0 0 #2f6fed;}
 #td-summary-body tr:hover td{background:#eef3ff;}
@@ -670,6 +669,39 @@ nav button.active{color:#fff;border-bottom-color:var(--accent);background:rgba(2
 #page-tenday .td-note{font-size:13px;}
 /* 이름 칸은 잘리지 않게 줄바꿈 허용(모바일에서 "가두 직영점 12개", 긴 매장명이 …로 잘리던 것 방지) */
 #td-summary-table td.cht-name,#td-channel-table td.cht-name,#td-store-table td.cht-name{white-space:normal;word-break:keep-all;text-overflow:clip;line-height:1.35;}
+/* 2026-10-24 모바일(600px 이하): 9칸짜리 가로 표 대신 한 행을 두 줄 카드로 접어 옆으로 넘기지 않게 한다.
+   1줄 = 순위 · 이름 · 달성률 / 2줄 = 나머지 지표(작은 회색 라벨 + 값). PC 레이아웃은 그대로. */
+@media(max-width:600px){
+  #td-summary-table,#td-channel-table,#td-store-table{display:block;min-width:0 !important;width:100%;}
+  #td-summary-table thead,#td-channel-table thead,#td-store-table thead{display:none;}
+  #td-summary-table tbody,#td-channel-table tbody,#td-store-table tbody{display:block;}
+  #td-summary-table tr,#td-channel-table tr,#td-store-table tr{display:flex;flex-wrap:wrap;align-items:center;row-gap:3px;column-gap:10px;padding:9px 12px;border-bottom:1px solid #eef0f4;}
+  #td-summary-table td,#td-channel-table td,#td-store-table td{display:block;width:auto !important;padding:0 !important;border:none;background:transparent !important;text-align:left !important;font-size:12px;font-weight:700;color:#333;white-space:nowrap;}
+  /* 줄무늬·선택 강조는 td 대신 tr에 */
+  #td-summary-body tr:nth-child(even),#td-channel-body tr:nth-child(even),#td-store-list tr:nth-child(even){background:#f5f7fb;}
+  #td-summary-body tr.td-sel{background:#dde8ff;box-shadow:inset 4px 0 0 #2f6fed;}
+  #td-summary-body tr.td-sel td:first-child{box-shadow:none;}
+  /* 1줄: 순위 / 이름 / 달성률 — 이름 칸 폭으로 나머지를 2줄로 밀어낸다 */
+  #td-summary-table td:nth-child(1),#td-channel-table td:nth-child(1),#td-store-table td:nth-child(1){order:-3;flex:0 0 26px;}
+  #td-summary-table td:nth-child(2),#td-channel-table td:nth-child(2),#td-store-table td:nth-child(2){order:-2;flex:1 1 calc(100% - 130px);font-size:14px;color:#1a1a2e;white-space:normal;}
+  #td-summary-table td:nth-child(6),#td-channel-table td:nth-child(5),#td-store-table td:nth-child(5){order:-1;flex:0 0 72px;text-align:right !important;font-size:15px;font-weight:800;}
+  /* 2줄: 라벨 */
+  #td-summary-table td:nth-child(n+3)::before,#td-channel-table td:nth-child(n+3)::before,#td-store-table td:nth-child(n+3)::before{color:#8a93a6;font-size:11px;font-weight:600;margin-right:3px;}
+  #td-summary-table td:nth-child(3)::before{content:'매장';}
+  #td-summary-table td:nth-child(4)::before,#td-channel-table td:nth-child(3)::before,#td-store-table td:nth-child(3)::before{content:'목표';}
+  #td-summary-table td:nth-child(5)::before,#td-channel-table td:nth-child(4)::before,#td-store-table td:nth-child(4)::before{content:'실적';}
+  #td-summary-table td:nth-child(7)::before,#td-channel-table td:nth-child(6)::before,#td-store-table td:nth-child(6)::before{content:'객수';}
+  #td-summary-table td:nth-child(8)::before,#td-channel-table td:nth-child(7)::before,#td-store-table td:nth-child(7)::before{content:'객수량';}
+  #td-summary-table td:nth-child(9)::before,#td-channel-table td:nth-child(8)::before,#td-store-table td:nth-child(8)::before{content:'객단가';}
+  /* 달성률 칸(1줄)엔 라벨 없음 */
+  #td-summary-table td:nth-child(6)::before,#td-channel-table td:nth-child(5)::before,#td-store-table td:nth-child(5)::before{content:none;}
+  /* "데이터 없음" 한 칸짜리 행 */
+  #td-summary-table td[colspan],#td-channel-table td[colspan],#td-store-table td[colspan]{flex:1 1 100%;text-align:center !important;}
+  #td-summary-table td[colspan]::before,#td-channel-table td[colspan]::before,#td-store-table td[colspan]::before{content:none;}
+  #page-tenday .trb-num{width:22px;height:22px;font-size:11px;}
+  #page-tenday .td-period{display:block;margin:6px 0 0;}
+  #page-tenday .db-panel-hd.td-hd .ph-title{display:block;}
+}
 .td-note{margin-top:10px;font-size:13px;font-weight:700;color:#2a3a5c;background:#eaf0ff;border-left:4px solid #3d63c9;padding:9px 14px;border-radius:6px;}
 </style>
 </head>
@@ -929,7 +961,7 @@ nav button.active{color:#fff;border-bottom-color:var(--accent);background:rgba(2
           <tbody id="td-summary-body"></tbody>
         </table>
       </div>
-      <div class="td-note">💡 담당자 행을 클릭하면 아래에 그 담당자의 채널별·매장별 실적이 표시됩니다. 달성률 100% 이상은 연한 초록 배경으로 표시됩니다.</div>
+      <div class="td-note">💡 담당자 행을 클릭하면 아래에 그 담당자의 채널별·매장별 실적이 표시됩니다.</div>
     </div>
   </div>
 
