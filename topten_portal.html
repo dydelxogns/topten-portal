@@ -3868,6 +3868,7 @@ function dsxBind(){
   dsx$('dsxLivePhoto').onclick=()=>{ dsxStopLive(); dsx$('dsxFileCam').click(); };
   dsx$('dsxLiveZoom').onclick=dsxToggleZoom; dsx$('dsxLiveTorch').onclick=dsxToggleTorch;
   window.addEventListener('popstate',dsxOnPop);
+  try{ history.scrollRestoration='manual'; }catch(e){}   // 뒤로가기 때 화면 위치는 직접 맞춘다
 }
 function dsxSetSeason(k){
   if(!DSX.S[k]) return;
@@ -4017,19 +4018,31 @@ function dsxHydrate(root){
 // ── 상세 ─────────────────────────────────────────────────────────────────
 function dsxOpen(k,code,color,noPush){
   const S=DSX.S[k]; const p=S&&S.by.get(code); if(!p) return;
-  if(DSX.cur!==k){ dsx$('dsxQ').value=''; dsxSetSeason(k); }
+  let jumped=false;
+  if(DSX.cur!==k){ dsx$('dsxQ').value=''; dsxSetSeason(k); jumped=true; }
   const was=!!DSX.detail;
-  if(!was) DSX.scrollY=window.scrollY;
+  // 목록에서 처음 들어갈 때의 위치를 기억해 둔다 → 뒤로 가면 누른 자리로 돌아간다(2026-11-11 요청)
+  if(!was){ DSX.scrollY=window.scrollY; DSX.fromCode=jumped?null:code; }
+  else if(jumped) DSX.fromCode=null;
   DSX.detail=p; DSX.hl=color||null;
   dsx$('dsxHome').classList.add('dsx-hide'); dsx$('dsxDetail').classList.remove('dsx-hide');
   dsxRenderDetail(p); window.scrollTo(0,0); dsxPushRecent(k,code);
   if(!noPush){ try{ if(was) history.replaceState({dsx:[k,code]},''); else history.pushState({dsx:[k,code]},''); }catch(e){} }
 }
 function dsxShowHome(silent){
+  const last=DSX.detail?DSX.detail.c:null;
   DSX.detail=null; DSX.hl=null;
   dsx$('dsxDetail').classList.add('dsx-hide'); dsx$('dsxHome').classList.remove('dsx-hide');
   dsxRenderRecent();
-  if(!silent) window.scrollTo(0,DSX.scrollY||0);
+  if(silent) return;
+  // 누른 상품 그대로면 그때 화면 위치로, 상세에서 이전/다음·스캔으로 다른 상품까지 갔으면 그 상품이 보이는 자리로
+  const go=()=>{
+    if(DSX.detail) return;
+    const el=(last&&last!==DSX.fromCode)?dsx$('dsxList').querySelector('.dsx-item[data-code="'+last+'"]'):null;
+    if(el) el.scrollIntoView({block:'center'});
+    else window.scrollTo(0,(last&&last===DSX.fromCode)?(DSX.scrollY||0):0);
+  };
+  go(); requestAnimationFrame(go); setTimeout(go,80);   // 브라우저가 뒤로가기 직후 위치를 맨 위로 되돌리는 경우가 있어 한 번 더
 }
 function dsxBack(){ try{ if(history.state&&history.state.dsx){ history.back(); return; } }catch(e){} dsxShowHome(); }
 function dsxOnPop(e){
